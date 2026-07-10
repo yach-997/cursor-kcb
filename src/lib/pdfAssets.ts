@@ -38,55 +38,56 @@ export async function fetchBytesWithTimeout(
   }
 }
 
-/** 仅本地资源 + 短超时镜像，避免外网请求把识别卡死 */
-export function createLocalBinaryDataFactory() {
-  const root = assetRoot()
-  const cmapUrl = new URL('pdfjs/cmaps/', root).href
-  const fontUrl = new URL('pdfjs/standard_fonts/', root).href
-
-  return class LocalBinaryDataFactory {
-    cMapUrl = cmapUrl
-    standardFontDataUrl = fontUrl
-    wasmUrl: string | null = null
-
-    constructor(_opts?: {
-      cMapUrl?: string | null
-      standardFontDataUrl?: string | null
-      wasmUrl?: string | null
-    }) {}
-
-    async fetch({
-      kind,
-      filename,
-    }: {
-      kind: string
-      filename: string
-    }): Promise<Uint8Array> {
-      const base =
-        kind === 'cMapUrl'
-          ? this.cMapUrl
-          : kind === 'standardFontDataUrl'
-            ? this.standardFontDataUrl
-            : null
-      if (!base) throw new Error(`不支持的资源类型：${kind}`)
-      const url = `${base.endsWith('/') ? base : `${base}/`}${filename}`
-      try {
-        return await fetchBytesWithTimeout(url, 6000)
-      } catch {
-        const mirror =
-          kind === 'cMapUrl'
-            ? `https://registry.npmmirror.com/pdfjs-dist/6.1.200/files/cmaps/${filename}`
-            : `https://registry.npmmirror.com/pdfjs-dist/6.1.200/files/standard_fonts/${filename}`
-        return await fetchBytesWithTimeout(mirror, 6000)
-      }
-    }
-  }
-}
+const PDFJS_VER = '4.10.38'
 
 export function assetRoot(): string {
   const origin = window.location.origin
   const base = import.meta.env.BASE_URL || '/'
   return new URL(base, origin).href.replace(/\/?$/, '/')
+}
+
+/** pdf.js 4.x：CMap 多源加载（本地优先） */
+export function createLocalCMapReaderFactory() {
+  const local = new URL('pdfjs/cmaps/', assetRoot()).href
+  const mirror = `https://registry.npmmirror.com/pdfjs-dist/${PDFJS_VER}/files/cmaps/`
+
+  return class LocalCMapReaderFactory {
+    baseUrl = local
+    isCompressed = true
+
+    constructor(_opts?: { baseUrl?: string | null; isCompressed?: boolean }) {}
+
+    async fetch({ name }: { name: string }) {
+      const file = `${name}.bcmap`
+      try {
+        const cMapData = await fetchBytesWithTimeout(`${local}${file}`, 6000)
+        return { cMapData, isCompressed: true }
+      } catch {
+        const cMapData = await fetchBytesWithTimeout(`${mirror}${file}`, 6000)
+        return { cMapData, isCompressed: true }
+      }
+    }
+  }
+}
+
+/** pdf.js 4.x：标准字体多源加载 */
+export function createLocalStandardFontDataFactory() {
+  const local = new URL('pdfjs/standard_fonts/', assetRoot()).href
+  const mirror = `https://registry.npmmirror.com/pdfjs-dist/${PDFJS_VER}/files/standard_fonts/`
+
+  return class LocalStandardFontDataFactory {
+    baseUrl = local
+
+    constructor(_opts?: { baseUrl?: string | null }) {}
+
+    async fetch({ filename }: { filename: string }) {
+      try {
+        return await fetchBytesWithTimeout(`${local}${filename}`, 6000)
+      } catch {
+        return await fetchBytesWithTimeout(`${mirror}${filename}`, 6000)
+      }
+    }
+  }
 }
 
 export function looksLikeTimetableText(items: { str: string }[]): boolean {
@@ -99,8 +100,7 @@ export function looksLikeTimetableText(items: { str: string }[]): boolean {
 }
 
 export function prefetchCriticalCmaps(): void {
-  const root = assetRoot()
-  const base = new URL('pdfjs/cmaps/', root).href
+  const base = new URL('pdfjs/cmaps/', assetRoot()).href
   for (const name of [
     'Adobe-GB1-UCS2',
     'GBK-EUC-H',
@@ -115,7 +115,7 @@ export function prefetchCriticalCmaps(): void {
 export function formatPdfError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err || '未知错误')
   if (/async iterable|asyncIterator|ReadableStream/i.test(msg)) {
-    return `当前手机浏览器缺异步流支持，已尝试兼容仍失败：${msg}。请更新系统浏览器后重试。`
+    return `当前手机浏览器不支持该 PDF 引擎特性：${msg}。请完全关闭后重开本页再试。`
   }
   if (/超时|timeout|abort/i.test(msg)) {
     return `识别超时：${msg}。请再选一次 PDF 重试。`

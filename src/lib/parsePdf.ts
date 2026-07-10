@@ -2,9 +2,9 @@ import type { Course, TimetablePayload, WeekParity } from '../types'
 import { parseWeekParity, uid } from './storage'
 import {
   assetRoot,
-  createLocalBinaryDataFactory,
+  createLocalCMapReaderFactory,
+  createLocalStandardFontDataFactory,
   formatPdfError,
-  looksLikeTimetableText,
   withTimeout,
 } from './pdfAssets'
 import { installPdfCompat } from './pdfCompat'
@@ -811,7 +811,8 @@ function parseGridStyleCourses(items: PdfTextItem[]): Course[] {
 
 /**
  * 提取 PDF 文本。
- * 通过 globalThis.pdfjsWorker 走官方主线程路径，避免手机 module Worker 卡死。
+ * 使用 pdf.js 4.x（无 for-await ReadableStream），兼容绝大多数手机浏览器。
+ * 通过 globalThis.pdfjsWorker 走主线程，避免 module Worker 卡死。
  */
 export async function extractPdfTextItems(
   data: ArrayBuffer,
@@ -820,7 +821,6 @@ export async function extractPdfTextItems(
 
   const run = async () => {
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-    // 必须先挂上 WorkerMessageHandler，pdfjs 才会走主线程而不创建卡住的 Worker
     const pdfjsWorker = await import(
       'pdfjs-dist/legacy/build/pdf.worker.min.mjs'
     )
@@ -839,7 +839,6 @@ export async function extractPdfTextItems(
     const bytes = new Uint8Array(data.byteLength)
     bytes.set(new Uint8Array(data))
 
-    const BinaryDataFactory = createLocalBinaryDataFactory()
     const localCmap = new URL('pdfjs/cmaps/', root).href
     const localFonts = new URL('pdfjs/standard_fonts/', root).href
 
@@ -849,11 +848,12 @@ export async function extractPdfTextItems(
       cMapUrl: localCmap,
       cMapPacked: true,
       standardFontDataUrl: localFonts,
-      BinaryDataFactory,
+      CMapReaderFactory: createLocalCMapReaderFactory(),
+      StandardFontDataFactory: createLocalStandardFontDataFactory(),
       useWorkerFetch: false,
       disableStream: true,
       disableAutoFetch: true,
-      useWasm: false,
+      isEvalSupported: false,
     })
 
     try {
@@ -885,10 +885,6 @@ export async function extractPdfTextItems(
       if (!items.length) {
         throw new Error('PDF 里没有可读文字（可能是截图版）')
       }
-      if (!looksLikeTimetableText(items)) {
-        // 仍交给上层试解析；很多机型中文检测偏严
-        return items
-      }
       return items
     } catch (e) {
       throw new Error(formatPdfError(e))
@@ -905,7 +901,8 @@ export async function extractPdfTextItems(
     return await withTimeout(run(), 35000, '识别超时，请重新选择 PDF')
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    if (/^PDF |^识别|^课表字体|^打开 PDF/.test(msg)) throw e instanceof Error ? e : new Error(msg)
+    if (/^PDF |^识别|^课表字体|^打开 PDF/.test(msg))
+      throw e instanceof Error ? e : new Error(msg)
     throw new Error(formatPdfError(e))
   }
 }
