@@ -191,7 +191,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         <h2 className="font-semibold text-ink">关于</h2>
         <p className="mt-2">四川轻化工大学课表助手 · 纯前端 PWA</p>
         <p className="mt-1">正方教务：61.139.105.138</p>
-        <p className="mt-1">版本 1.2.0</p>
+        <p className="mt-1">版本 1.2.1</p>
         <p className="mt-2 break-all text-xs text-muted">
           https://susuc-kcb.vercel.app/
         </p>
