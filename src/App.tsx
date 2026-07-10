@@ -17,7 +17,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomePage data={data} />} />
             <Route path="/import" element={<ImportPage onImport={importData} />} />
-            <Route path="/guide" element={<GuidePage />} />
+            <Route path="/guide" element={<GuidePage onImport={importData} />} />
             <Route
               path="/settings"
               element={

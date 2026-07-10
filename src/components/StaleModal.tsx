@@ -32,7 +32,7 @@ export function StaleModal({ open, days, onClose, onGoGuide }: Props) {
             onClick={onGoGuide}
             className="w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white active:scale-[0.98] transition"
           >
-            查看导入方法
+            去重新导入
           </button>
           <button
             type="button"

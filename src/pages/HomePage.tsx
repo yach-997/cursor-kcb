@@ -69,20 +69,20 @@ export function HomePage({ data }: Props) {
           </div>
           <h2 className="mt-4 text-lg font-semibold text-ink">还没有课表</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            用浏览器书签在正方教务课表页一键导入，数据只保存在你的手机里。
+            手机打开教务，复制课表文字，回到这里粘贴即可。数据只保存在你手机里。
           </p>
           <Link
             to="/guide"
             className="mt-6 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white shadow-md shadow-brand/20"
           >
-            去获取导入书签
+            去导入课表
           </Link>
           <button
             type="button"
             className="mt-3 text-sm font-medium text-brand"
-            onClick={() => navigate('/settings')}
+            onClick={() => navigate('/guide')}
           >
-            或先载入演示数据
+            或先看演示课表
           </button>
         </div>
       )}
