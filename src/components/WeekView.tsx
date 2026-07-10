@@ -5,12 +5,15 @@ import {
   WEEKDAY_LABELS,
   courseColor,
   maxSection,
+  mondayOfWeek,
+  todayWeekday,
   weekMatches,
 } from '../lib/storage'
 
 interface Props {
   courses: Course[]
   suggestedWeek?: number | null
+  termStart?: string
 }
 
 function detectMaxWeek(courses: Course[]): number {
@@ -29,12 +32,11 @@ function detectMaxWeek(courses: Course[]): number {
 
 /** 节次 → 网格行号（1=表头） */
 function sectionRow(sec: number): number {
-  // 2-5: 第1-4节; 6: 午休; 7-10: 第5-8节; 11-13: 第9-11节
   if (sec <= 4) return 1 + sec
   return sec + 2
 }
 
-export function WeekView({ courses, suggestedWeek }: Props) {
+export function WeekView({ courses, suggestedWeek, termStart }: Props) {
   const maxWeek = useMemo(() => detectMaxWeek(courses), [courses])
   const periodCount = Math.min(Math.max(maxSection(courses), 8), 11)
   const defaultWeek = useMemo(() => {
@@ -45,7 +47,7 @@ export function WeekView({ courses, suggestedWeek }: Props) {
   }, [suggestedWeek, maxWeek])
 
   const [viewWeek, setViewWeek] = useState(defaultWeek)
-  const today = ((new Date().getDay() + 6) % 7) + 1
+  const today = todayWeekday()
 
   useEffect(() => {
     setViewWeek(defaultWeek)
@@ -64,30 +66,37 @@ export function WeekView({ courses, suggestedWeek }: Props) {
   )
 
   const dateLabels = useMemo(() => {
-    const now = new Date()
-    const day = now.getDay()
-    const thisMonday = new Date(now)
-    thisMonday.setDate(now.getDate() + (day === 0 ? -6 : 1 - day))
-    const baseWeek =
-      suggestedWeek && suggestedWeek >= 1 ? suggestedWeek : viewWeek
-    const monday = new Date(thisMonday)
-    monday.setDate(thisMonday.getDate() + (viewWeek - baseWeek) * 7)
+    const monday = termStart
+      ? mondayOfWeek(termStart, viewWeek)
+      : (() => {
+          const now = new Date()
+          const day = now.getDay()
+          const d = new Date(now)
+          d.setDate(now.getDate() + (day === 0 ? -6 : 1 - day))
+          if (suggestedWeek && suggestedWeek >= 1) {
+            d.setDate(d.getDate() + (viewWeek - suggestedWeek) * 7)
+          }
+          return d
+        })()
+    if (!monday) return Array.from({ length: 7 }, () => '')
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday)
       d.setDate(monday.getDate() + i)
       return `${d.getMonth() + 1}/${d.getDate()}`
     })
-  }, [viewWeek, suggestedWeek])
+  }, [viewWeek, suggestedWeek, termStart])
 
   const lastRow = sectionRow(periodCount)
   const lunchRow = 6
   const sections = Array.from({ length: periodCount }, (_, i) => i + 1)
+  const isCurrentWeek = suggestedWeek != null && viewWeek === suggestedWeek
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col animate-fade-in">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex gap-0.5 overflow-x-auto px-2 pb-1 pt-1 scrollbar-none">
         {Array.from({ length: maxWeek }, (_, i) => i + 1).map((w) => {
           const active = viewWeek === w
+          const isNow = suggestedWeek === w
           return (
             <button
               key={w}
@@ -96,7 +105,9 @@ export function WeekView({ courses, suggestedWeek }: Props) {
               className={`shrink-0 px-2.5 py-1.5 text-sm font-semibold transition ${
                 active
                   ? 'border-b-2 border-brand text-brand'
-                  : 'text-muted'
+                  : isNow
+                    ? 'text-brand-dark'
+                    : 'text-muted'
               }`}
             >
               {w}周
@@ -114,20 +125,20 @@ export function WeekView({ courses, suggestedWeek }: Props) {
             gridTemplateRows: `2.6rem repeat(${lastRow - 1}, minmax(2.85rem, auto))`,
           }}
         >
-          {/* 左上角 */}
           <div
             className="sticky left-0 z-30 border-b border-r border-line/60 bg-[#f3f7f5]/95"
             style={{ gridColumn: 1, gridRow: 1 }}
           />
 
-          {/* 星期头 */}
           {WEEKDAY_LABELS.map((label, i) => {
             const day = i + 1
-            const isToday = day === today
+            const isToday = isCurrentWeek && day === today
             return (
               <div
                 key={day}
-                className="flex flex-col items-center justify-center border-b border-line/60"
+                className={`flex flex-col items-center justify-center border-b border-line/60 ${
+                  isToday ? 'bg-brand-soft/60' : ''
+                }`}
                 style={{ gridColumn: day + 1, gridRow: 1 }}
               >
                 <span className="text-[0.58rem] text-muted">{dateLabels[i]}</span>
@@ -144,7 +155,6 @@ export function WeekView({ courses, suggestedWeek }: Props) {
             )
           })}
 
-          {/* 午休行 */}
           <div
             className="sticky left-0 z-20 flex items-center justify-center border-b border-r border-line/50 bg-amber-50 text-[0.58rem] font-semibold text-amber-800"
             style={{ gridColumn: 1, gridRow: lunchRow }}
@@ -154,12 +164,13 @@ export function WeekView({ courses, suggestedWeek }: Props) {
           {WEEKDAY_LABELS.map((_, i) => (
             <div
               key={`lunch-${i}`}
-              className="border-b border-line/40 bg-amber-50/50"
+              className={`border-b border-line/40 bg-amber-50/50 ${
+                isCurrentWeek && i + 1 === today ? 'bg-brand-soft/30' : ''
+              }`}
               style={{ gridColumn: i + 2, gridRow: lunchRow }}
             />
           ))}
 
-          {/* 节次标签 + 背景格 */}
           {sections.map((sec) => {
             const row = sectionRow(sec)
             const range = SECTION_TIME_RANGES[sec] || ''
@@ -177,7 +188,9 @@ export function WeekView({ courses, suggestedWeek }: Props) {
                 {WEEKDAY_LABELS.map((_, i) => (
                   <div
                     key={`bg-${sec}-${i}`}
-                    className="border-b border-r border-line/35 bg-white/20"
+                    className={`border-b border-r border-line/35 bg-white/20 ${
+                      isCurrentWeek && i + 1 === today ? 'bg-brand-soft/25' : ''
+                    }`}
                     style={{ gridColumn: i + 2, gridRow: row }}
                   />
                 ))}
@@ -185,7 +198,6 @@ export function WeekView({ courses, suggestedWeek }: Props) {
             )
           })}
 
-          {/* 课程块 */}
           {weekCourses.map((course) => {
             const endSec = Math.min(course.endSection, periodCount)
             const rowStart = sectionRow(course.startSection)
@@ -213,7 +225,8 @@ export function WeekView({ courses, suggestedWeek }: Props) {
         </div>
 
         <p className="mt-2 text-center text-[0.65rem] text-muted">
-          第 {viewWeek} 周 · 点上方周数切换 · 可左右滑动
+          第 {viewWeek} 周
+          {isCurrentWeek ? '（本周）' : ''} · 点上方周数可切换
         </p>
       </div>
     </div>

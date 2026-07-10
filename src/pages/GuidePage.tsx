@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { TermMetaForm } from '../components/TermMetaForm'
 import {
   BOOKMARKLET_TARGET_PLACEHOLDER,
   buildBookmarkletSource,
@@ -8,6 +9,7 @@ import {
 import { PASTE_EXAMPLE, parsePastedTimetable } from '../lib/parsePaste'
 import { parseZfPdfFile } from '../lib/parsePdf'
 import { buildMockPayload } from '../lib/mockData'
+import { normalizeTermLabel } from '../lib/storage'
 import type { TimetablePayload } from '../types'
 
 interface Props {
@@ -23,6 +25,7 @@ export function GuidePage({ onImport }: Props) {
   const [busy, setBusy] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [pending, setPending] = useState<TimetablePayload | null>(null)
   const [target, setTarget] = useState(() => {
     const { origin, pathname } = window.location
     const base = pathname.replace(/\/index\.html$/, '').replace(/\/$/, '') || ''
@@ -34,11 +37,23 @@ export function GuidePage({ onImport }: Props) {
     return minifyBookmarklet(src)
   }, [target])
 
-  const doImport = (payload: TimetablePayload, tip: string) => {
+  const finishImport = (payload: TimetablePayload, tip: string) => {
     onImport(payload)
+    setPending(null)
     setError(null)
     setOkMsg(tip)
-    window.setTimeout(() => navigate('/'), 900)
+    window.setTimeout(() => navigate('/'), 700)
+  }
+
+  /** PDF / 粘贴：先填学期信息再入库 */
+  const askMetaThenImport = (payload: TimetablePayload) => {
+    setError(null)
+    setOkMsg(null)
+    if (payload.termStart && payload.termLabel) {
+      finishImport(payload, `已导入 ${payload.courses.length} 门课`)
+      return
+    }
+    setPending(payload)
   }
 
   const handlePdf = async (file: File | null) => {
@@ -53,7 +68,7 @@ export function GuidePage({ onImport }: Props) {
     setFileName(file.name)
     try {
       const payload = await parseZfPdfFile(file)
-      doImport(payload, `已从 PDF 导入 ${payload.courses.length} 门课`)
+      askMetaThenImport(payload)
     } catch (e) {
       setOkMsg(null)
       setError(e instanceof Error ? e.message : 'PDF 解析失败')
@@ -65,7 +80,7 @@ export function GuidePage({ onImport }: Props) {
   const handlePasteImport = () => {
     try {
       const payload = parsePastedTimetable(text)
-      doImport(payload, `已导入 ${payload.courses.length} 门课`)
+      askMetaThenImport(payload)
     } catch (e) {
       setOkMsg(null)
       setError(e instanceof Error ? e.message : '导入失败')
@@ -73,7 +88,7 @@ export function GuidePage({ onImport }: Props) {
   }
 
   const handleDemo = () => {
-    doImport(buildMockPayload(0), '已载入演示课表')
+    finishImport(buildMockPayload(0), '已载入演示课表')
   }
 
   const copyCode = async () => {
@@ -91,11 +106,41 @@ export function GuidePage({ onImport }: Props) {
     window.setTimeout(() => setCopied(false), 2000)
   }
 
+  if (pending) {
+    return (
+      <div className="flex-1 overflow-y-auto px-4 pb-6 pt-5 animate-fade-in">
+        <h1 className="font-display text-2xl font-bold text-ink">确认学期</h1>
+        <p className="mt-1 text-sm text-muted leading-relaxed">
+          课表已识别，请确认学期和第一周日期。
+        </p>
+        <div className="mt-5">
+          <TermMetaForm
+            initialLabel={pending.termLabel}
+            initialStart={pending.termStart}
+            courseCount={pending.courses.length}
+            onCancel={() => setPending(null)}
+            onSubmit={({ termLabel, termStart }) => {
+              finishImport(
+                {
+                  ...pending,
+                  termLabel: normalizeTermLabel(termLabel),
+                  termStart,
+                  updatedAt: new Date().toISOString(),
+                },
+                `已导入 ${pending.courses.length} 门课`,
+              )
+            }}
+          />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex-1 overflow-y-auto px-4 pb-6 pt-5 animate-fade-in">
       <h1 className="font-display text-2xl font-bold text-ink">导入课表</h1>
       <p className="mt-1 text-sm text-muted leading-relaxed">
-        最简单：教务下载 PDF → 在这里上传。数据只存在你手机里。
+        上传 PDF 后，再填学期和第一周日期，就能自动显示本周 / 今日课程。
       </p>
 
       <section className="mt-5 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
@@ -123,7 +168,7 @@ export function GuidePage({ onImport }: Props) {
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[0.7rem] font-bold text-white">
               3
             </span>
-            <span>回到本页，点下面按钮选择这个 PDF</span>
+            <span>回到本页上传 PDF，并填写学期、第一周日期</span>
           </li>
         </ol>
 

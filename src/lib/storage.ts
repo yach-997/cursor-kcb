@@ -144,19 +144,68 @@ export function getFreshness(updatedAt?: string | null): FreshnessInfo {
   }
 }
 
-/** 从学期起始日推算当前教学周（周一为一周开始） */
-export function currentTeachingWeek(termStart?: string): number | null {
+/** 把任意日期归一到当周周一 YYYY-MM-DD */
+export function toMondayIso(dateStr: string): string | null {
+  const d = new Date(dateStr + 'T00:00:00')
+  if (Number.isNaN(d.getTime())) return null
+  const day = d.getDay()
+  const offset = day === 0 ? -6 : 1 - day
+  d.setDate(d.getDate() + offset)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
+/** 今天是周几：1=周一 … 7=周日 */
+export function todayWeekday(): number {
+  return ((new Date().getDay() + 6) % 7) + 1
+}
+
+/** 根据当前月份猜一个学期名，方便学生少打字 */
+export function guessTermLabel(now = new Date()): string {
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  if (m >= 2 && m <= 7) return `${y - 1}-${y} 下学期`
+  if (m >= 8) return `${y}-${y + 1} 上学期`
+  return `${y - 1}-${y} 上学期`
+}
+
+/** 清洗教务 PDF 里的学期字符串 */
+export function normalizeTermLabel(raw?: string): string {
+  if (!raw) return guessTermLabel()
+  const m = raw.match(/(\d{4})\s*[-–—]\s*(\d{4}).*?(上|下|第\s*[12一二]|1|2)/)
+  if (m) {
+    const half = /上|1|一/.test(m[3]) ? '上学期' : '下学期'
+    return `${m[1]}-${m[2]} ${half}`
+  }
+  return raw.replace(/\s+/g, ' ').trim() || guessTermLabel()
+}
+
+/** 第 week 周的周一（基于 termStart） */
+export function mondayOfWeek(termStart: string, week: number): Date | null {
+  const mondayIso = toMondayIso(termStart)
+  if (!mondayIso) return null
+  const d = new Date(mondayIso + 'T00:00:00')
+  d.setDate(d.getDate() + (Math.max(1, week) - 1) * 7)
+  return d
+}
+
+/** 从学期第一周周一推算当前教学周 */
+export function currentTeachingWeek(
+  termStart?: string,
+  maxWeek = 30,
+): number | null {
   if (!termStart) return null
-  const start = new Date(termStart + 'T00:00:00')
-  if (Number.isNaN(start.getTime())) return null
+  const mondayIso = toMondayIso(termStart)
+  if (!mondayIso) return null
+  const termMonday = new Date(mondayIso + 'T00:00:00')
   const now = new Date()
-  const day = start.getDay()
-  const mondayOffset = day === 0 ? -6 : 1 - day
-  const termMonday = new Date(start)
-  termMonday.setDate(start.getDate() + mondayOffset)
-  const diff = now.getTime() - termMonday.getTime()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const diff = today.getTime() - termMonday.getTime()
   if (diff < 0) return 1
-  return Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1
+  const week = Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1
+  return Math.min(Math.max(week, 1), maxWeek)
 }
 
 export function weekMatches(course: Course, week: number | null): boolean {
@@ -207,6 +256,7 @@ export function decodeImportPayload(encoded: string): TimetablePayload {
       id: c.id || uid(),
       weekParity: c.weekParity || parseWeekParity(c.weeks || ''),
     })),
+    termLabel: data.termLabel,
     termStart: data.termStart,
   }
 }

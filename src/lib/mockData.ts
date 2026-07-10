@@ -98,11 +98,19 @@ export const MOCK_COURSES: Omit<Course, 'id' | 'weekParity'>[] = [
 export function buildMockPayload(daysAgo = 0): TimetablePayload {
   const d = new Date()
   d.setDate(d.getDate() - daysAgo)
+  // 演示：把「今天」落在第 3 周附近，方便看到今日课
+  const monday = new Date()
+  const day = monday.getDay()
+  monday.setDate(monday.getDate() + (day === 0 ? -6 : 1 - day) - 14)
+  const y = monday.getFullYear()
+  const m = String(monday.getMonth() + 1).padStart(2, '0')
+  const dd = String(monday.getDate()).padStart(2, '0')
   return {
     version: 1,
     school: '四川轻化工大学',
     updatedAt: d.toISOString(),
-    termStart: '2026-02-23',
+    termLabel: '2025-2026 下学期（演示）',
+    termStart: `${y}-${m}-${dd}`,
     courses: MOCK_COURSES.map((c) => ({
       ...c,
       id: uid(),

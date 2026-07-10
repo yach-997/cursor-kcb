@@ -22,7 +22,9 @@ export interface TimetablePayload {
   school: string
   updatedAt: string
   courses: Course[]
-  /** 可选：学期起始日 YYYY-MM-DD，用于推算当前教学周 */
+  /** 学期名称，如「2025-2026 上学期」 */
+  termLabel?: string
+  /** 第一周周一日期 YYYY-MM-DD，用于推算当前教学周与日期 */
   termStart?: string
 }
 

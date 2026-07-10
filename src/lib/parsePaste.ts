@@ -84,6 +84,7 @@ export function parsePastedTimetable(raw: string): TimetablePayload {
         id: c.id || uid(),
         weekParity: c.weekParity || parseWeekParity(c.weeks || ''),
       })),
+      termLabel: data.termLabel,
       termStart: data.termStart,
     }
   }

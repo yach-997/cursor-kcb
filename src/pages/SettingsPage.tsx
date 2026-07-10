@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { TermMetaForm } from '../components/TermMetaForm'
 import { buildMockPayload } from '../lib/mockData'
 import {
   DEFAULT_CHANNEL_URL,
   clearTimetable,
   getChannelUrl,
+  normalizeTermLabel,
+  saveTimetable,
   setChannelUrl,
 } from '../lib/storage'
 import type { TimetablePayload } from '../types'
@@ -17,6 +20,7 @@ interface Props {
 export function SettingsPage({ data, onImport, onClear }: Props) {
   const [channel, setChannel] = useState(getChannelUrl)
   const [msg, setMsg] = useState<string | null>(null)
+  const [editingTerm, setEditingTerm] = useState(false)
 
   const flash = (text: string) => {
     setMsg(text)
@@ -40,6 +44,49 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
       )}
 
       <section className="mt-6 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
+        <h2 className="font-semibold text-ink">学期信息</h2>
+        {data && data.courses.length > 0 ? (
+          <>
+            <p className="mt-1 text-sm text-muted">
+              {data.termLabel || '未填写学期'}
+              {data.termStart ? ` · 第一周 ${data.termStart}` : ' · 未填第一周日期'}
+            </p>
+            {editingTerm ? (
+              <div className="mt-3">
+                <TermMetaForm
+                  initialLabel={data.termLabel}
+                  initialStart={data.termStart}
+                  submitText="保存学期信息"
+                  onCancel={() => setEditingTerm(false)}
+                  onSubmit={({ termLabel, termStart }) => {
+                    const next: TimetablePayload = {
+                      ...data,
+                      termLabel: normalizeTermLabel(termLabel),
+                      termStart,
+                    }
+                    saveTimetable(next)
+                    onImport(next)
+                    setEditingTerm(false)
+                    flash('学期信息已更新')
+                  }}
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEditingTerm(true)}
+                className="mt-3 w-full rounded-xl bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark"
+              >
+                修改学期 / 第一周日期
+              </button>
+            )}
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-muted">导入课表后可在此修改学期与开学周。</p>
+        )}
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
         <h2 className="font-semibold text-ink">课表数据</h2>
         <p className="mt-1 text-sm text-muted">
           {data
@@ -79,7 +126,9 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
 
       <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
         <h2 className="font-semibold text-ink">调课通知频道</h2>
-        <p className="mt-1 text-sm text-muted">底部引流按钮将打开此链接（可改成 QQ/微信/Telegram 等）。</p>
+        <p className="mt-1 text-sm text-muted">
+          底部引流按钮将打开此链接（可改成 QQ/微信/Telegram 等）。
+        </p>
         <input
           value={channel}
           onChange={(e) => setChannel(e.target.value)}

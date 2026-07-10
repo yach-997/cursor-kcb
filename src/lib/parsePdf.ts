@@ -366,14 +366,11 @@ export function parseZfPdfItems(items: PdfTextItem[]): TimetablePayload {
 
   return {
     version: 1,
-    school: '四川轻化工大学',
+    school: student ? `四川轻化工大学 · ${student}` : '四川轻化工大学',
     updatedAt: new Date().toISOString(),
     courses: unique,
+    termLabel: term || undefined,
     termStart: undefined,
-    // 附加信息写进 school 方便展示
-    ...(student || term
-      ? { school: `四川轻化工大学${student ? ` · ${student}` : ''}${term ? ` · ${term}` : ''}` }
-      : {}),
   }
 }
 

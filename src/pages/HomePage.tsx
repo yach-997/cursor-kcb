@@ -3,21 +3,39 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ChannelCTA } from '../components/ChannelCTA'
 import { StatusBanner } from '../components/StatusBanner'
 import { StaleModal } from '../components/StaleModal'
+import { TermMetaForm } from '../components/TermMetaForm'
+import { TodayView } from '../components/TodayView'
 import { WeekView } from '../components/WeekView'
-import { currentTeachingWeek, getFreshness } from '../lib/storage'
+import {
+  currentTeachingWeek,
+  getFreshness,
+  normalizeTermLabel,
+  saveTimetable,
+} from '../lib/storage'
 import type { TimetablePayload } from '../types'
 
 const STALE_DISMISS_KEY = 'susuc-stale-dismissed-at'
 
 interface Props {
   data: TimetablePayload | null
+  onUpdate?: (payload: TimetablePayload) => void
 }
 
-export function HomePage({ data }: Props) {
+export function HomePage({ data, onUpdate }: Props) {
   const navigate = useNavigate()
   const freshness = useMemo(() => getFreshness(data?.updatedAt), [data?.updatedAt])
-  const teachingWeek = currentTeachingWeek(data?.termStart)
+  const needTermMeta = !!(data && data.courses.length > 0 && !data.termStart)
+  const teachingWeek = useMemo(() => {
+    if (!data?.termStart) return null
+    let max = 16
+    for (const c of data.courses) {
+      const range = c.weeks.match(/(\d+)\s*[-~至]\s*(\d+)/)
+      if (range) max = Math.max(max, Number(range[1]), Number(range[2]))
+    }
+    return currentTeachingWeek(data.termStart, Math.min(max, 30))
+  }, [data])
   const [showStale, setShowStale] = useState(false)
+  const [tab, setTab] = useState<'today' | 'week'>('today')
 
   useEffect(() => {
     if (!data?.updatedAt) return
@@ -32,21 +50,39 @@ export function HomePage({ data }: Props) {
     setShowStale(false)
   }
 
+  const saveMeta = (termLabel: string, termStart: string) => {
+    if (!data) return
+    const next: TimetablePayload = {
+      ...data,
+      termLabel: normalizeTermLabel(termLabel),
+      termStart,
+    }
+    saveTimetable(next)
+    onUpdate?.(next)
+  }
+
+  const subtitle = (() => {
+    if (!data) return '本地课表 · 零后端'
+    const parts: string[] = []
+    if (data.termLabel) parts.push(data.termLabel)
+    if (teachingWeek != null) parts.push(`第 ${teachingWeek} 周`)
+    if (!parts.length) parts.push(`共 ${data.courses.length} 条课次`)
+    return parts.join(' · ')
+  })()
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex items-center justify-between px-4 pt-4 pb-1">
-        <div>
+        <div className="min-w-0">
           <h1 className="font-display text-lg font-bold tracking-tight text-ink">
             川轻化课表
           </h1>
-          <p className="text-[0.7rem] text-muted">
-            {data ? `共 ${data.courses.length} 条课次` : '本地课表 · 零后端'}
-          </p>
+          <p className="truncate text-[0.7rem] text-muted">{subtitle}</p>
         </div>
         <button
           type="button"
           onClick={() => navigate('/guide')}
-          className="rounded-lg bg-brand-soft px-2.5 py-1.5 text-xs font-semibold text-brand-dark"
+          className="shrink-0 rounded-lg bg-brand-soft px-2.5 py-1.5 text-xs font-semibold text-brand-dark"
         >
           导入
         </button>
@@ -56,16 +92,63 @@ export function HomePage({ data }: Props) {
         <StatusBanner info={freshness} />
       </div>
 
-      {data && data.courses.length > 0 ? (
-        <WeekView courses={data.courses} suggestedWeek={teachingWeek} />
-      ) : (
+      {needTermMeta && data && (
+        <div className="mx-3 mt-2">
+          <TermMetaForm
+            initialLabel={data.termLabel}
+            courseCount={data.courses.length}
+            submitText="保存学期信息"
+            onSubmit={({ termLabel, termStart }) => saveMeta(termLabel, termStart)}
+          />
+        </div>
+      )}
+
+      {data && data.courses.length > 0 && !needTermMeta ? (
+        <>
+          <div className="mx-3 mt-1 flex rounded-xl border border-line bg-white/80 p-0.5">
+            <button
+              type="button"
+              onClick={() => setTab('today')}
+              className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
+                tab === 'today' ? 'bg-brand text-white' : 'text-muted'
+              }`}
+            >
+              今日
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab('week')}
+              className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
+                tab === 'week' ? 'bg-brand text-white' : 'text-muted'
+              }`}
+            >
+              本周
+            </button>
+          </div>
+
+          {tab === 'today' ? (
+            <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+              <TodayView courses={data.courses} week={teachingWeek} />
+              <p className="px-4 pb-3 text-center text-[0.7rem] text-muted">
+                想看整周课表，点上面的「本周」
+              </p>
+            </div>
+          ) : (
+            <WeekView
+              courses={data.courses}
+              suggestedWeek={teachingWeek}
+              termStart={data.termStart}
+            />
+          )}
+        </>
+      ) : !data || data.courses.length === 0 ? (
         <div className="mx-3 mt-6 flex flex-1 flex-col items-center rounded-2xl border border-dashed border-line bg-white/70 px-6 py-12 text-center animate-slide-up">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft font-display text-xl font-bold text-brand">
             课
           </div>
           <h2 className="mt-4 text-lg font-semibold text-ink">还没有课表</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            从教务下载课表 PDF，回来上传即可。数据只保存在你手机里。
+            从教务下载课表 PDF，回来上传并填写学期信息。数据只保存在你手机里。
           </p>
           <Link
             to="/guide"
@@ -81,7 +164,7 @@ export function HomePage({ data }: Props) {
             或先看演示课表
           </button>
         </div>
-      )}
+      ) : null}
 
       {!(data && data.courses.length > 0) && <ChannelCTA />}
 
