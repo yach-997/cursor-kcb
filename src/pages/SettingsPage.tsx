@@ -61,22 +61,16 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
       <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
         <h2 className="font-semibold text-ink">更新 / 修复识别</h2>
         <p className="mt-1 text-sm text-muted leading-relaxed">
-          手机请用这个地址打开（不要用 jsDelivr，会显示源码）：
+          请用下面这个地址打开（边缘托管，手机可进）：
         </p>
         <a
           className="mt-2 block break-all rounded-xl bg-white px-3 py-2 text-sm font-medium text-brand underline border border-brand/20"
-          href="https://raw.githack.com/yach-997/susuc-kcb/cdn/index.html"
+          href="https://spectral-dust-f4sucj4.shipstatic.com/"
         >
-          https://raw.githack.com/yach-997/susuc-kcb/cdn/index.html
+          https://spectral-dust-f4sucj4.shipstatic.com/
         </a>
         <p className="mt-2 text-[0.75rem] text-muted leading-relaxed">
-          备用：
-          <a
-            className="text-brand underline break-all"
-            href="https://yach-997.github.io/susuc-kcb/"
-          >
-            https://yach-997.github.io/susuc-kcb/
-          </a>
+          旧的 github.io / jsDelivr / githack 链接请不要再用。
         </p>
         <button
           type="button"
@@ -197,9 +191,9 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         <h2 className="font-semibold text-ink">关于</h2>
         <p className="mt-2">四川轻化工大学课表助手 · 纯前端 PWA</p>
         <p className="mt-1">正方教务：61.139.105.138</p>
-        <p className="mt-1">版本 1.1.8</p>
+        <p className="mt-1">版本 1.1.9</p>
         <p className="mt-2 break-all text-xs text-muted">
-          打开：https://raw.githack.com/yach-997/susuc-kcb/cdn/index.html
+          https://spectral-dust-f4sucj4.shipstatic.com/
         </p>
       </section>
     </div>
