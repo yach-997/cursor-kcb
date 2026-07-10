@@ -4,10 +4,7 @@ import { ChannelCTA } from '../components/ChannelCTA'
 import { StatusBanner } from '../components/StatusBanner'
 import { StaleModal } from '../components/StaleModal'
 import { WeekView } from '../components/WeekView'
-import {
-  currentTeachingWeek,
-  getFreshness,
-} from '../lib/storage'
+import { currentTeachingWeek, getFreshness } from '../lib/storage'
 import type { TimetablePayload } from '../types'
 
 const STALE_DISMISS_KEY = 'susuc-stale-dismissed-at'
@@ -20,8 +17,6 @@ export function HomePage({ data }: Props) {
   const navigate = useNavigate()
   const freshness = useMemo(() => getFreshness(data?.updatedAt), [data?.updatedAt])
   const teachingWeek = currentTeachingWeek(data?.termStart)
-  const today = ((new Date().getDay() + 6) % 7) + 1
-  const [weekday, setWeekday] = useState(today)
   const [showStale, setShowStale] = useState(false)
 
   useEffect(() => {
@@ -39,32 +34,33 @@ export function HomePage({ data }: Props) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="px-4 pt-5 pb-1">
-        <p className="font-display text-[0.7rem] font-semibold tracking-[0.18em] uppercase text-brand">
-          SUSUC
-        </p>
-        <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">
-          川轻化课表
-        </h1>
-        <p className="mt-1 text-sm text-muted">
-          {data
-            ? `共 ${data.courses.length} 条课次 · 可切换周数查看`
-            : '本地课表 · 零后端'}
-        </p>
+      <header className="flex items-center justify-between px-4 pt-4 pb-1">
+        <div>
+          <h1 className="font-display text-lg font-bold tracking-tight text-ink">
+            川轻化课表
+          </h1>
+          <p className="text-[0.7rem] text-muted">
+            {data ? `共 ${data.courses.length} 条课次` : '本地课表 · 零后端'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/guide')}
+          className="rounded-lg bg-brand-soft px-2.5 py-1.5 text-xs font-semibold text-brand-dark"
+        >
+          导入
+        </button>
       </header>
 
-      <StatusBanner info={freshness} />
+      <div className="px-3">
+        <StatusBanner info={freshness} />
+      </div>
 
       {data && data.courses.length > 0 ? (
-        <WeekView
-          courses={data.courses}
-          suggestedWeek={teachingWeek}
-          selectedWeekday={weekday}
-          onSelectWeekday={setWeekday}
-        />
+        <WeekView courses={data.courses} suggestedWeek={teachingWeek} />
       ) : (
         <div className="mx-3 mt-6 flex flex-1 flex-col items-center rounded-2xl border border-dashed border-line bg-white/70 px-6 py-12 text-center animate-slide-up">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft text-brand font-display text-xl font-bold">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-soft font-display text-xl font-bold text-brand">
             课
           </div>
           <h2 className="mt-4 text-lg font-semibold text-ink">还没有课表</h2>
@@ -87,7 +83,7 @@ export function HomePage({ data }: Props) {
         </div>
       )}
 
-      <ChannelCTA />
+      {!(data && data.courses.length > 0) && <ChannelCTA />}
 
       <StaleModal
         open={showStale}
