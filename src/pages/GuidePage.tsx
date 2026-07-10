@@ -1,12 +1,6 @@
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TermMetaForm } from '../components/TermMetaForm'
-import {
-  BOOKMARKLET_TARGET_PLACEHOLDER,
-  buildBookmarkletSource,
-  minifyBookmarklet,
-} from '../lib/bookmarklet'
-import { PASTE_EXAMPLE, parsePastedTimetable } from '../lib/parsePaste'
 import { parseZfPdfFile } from '../lib/parsePdf'
 import { buildMockPayload } from '../lib/mockData'
 import { normalizeTermLabel } from '../lib/storage'
@@ -19,23 +13,11 @@ interface Props {
 export function GuidePage({ onImport }: Props) {
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
-  const [text, setText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [okMsg, setOkMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
   const [pending, setPending] = useState<TimetablePayload | null>(null)
-  const [target, setTarget] = useState(() => {
-    const { origin, pathname } = window.location
-    const base = pathname.replace(/\/index\.html$/, '').replace(/\/$/, '') || ''
-    return `${origin}${base}/`
-  })
-
-  const href = useMemo(() => {
-    const src = buildBookmarkletSource(target || BOOKMARKLET_TARGET_PLACEHOLDER)
-    return minifyBookmarklet(src)
-  }, [target])
 
   const finishImport = (payload: TimetablePayload, tip: string) => {
     onImport(payload)
@@ -45,7 +27,7 @@ export function GuidePage({ onImport }: Props) {
     window.setTimeout(() => navigate('/'), 700)
   }
 
-  /** PDF / 粘贴：先填学期信息再入库 */
+  /** PDF：先填学期信息再入库 */
   const askMetaThenImport = (payload: TimetablePayload) => {
     setError(null)
     setOkMsg(null)
@@ -77,33 +59,8 @@ export function GuidePage({ onImport }: Props) {
     }
   }
 
-  const handlePasteImport = () => {
-    try {
-      const payload = parsePastedTimetable(text)
-      askMetaThenImport(payload)
-    } catch (e) {
-      setOkMsg(null)
-      setError(e instanceof Error ? e.message : '导入失败')
-    }
-  }
-
   const handleDemo = () => {
     finishImport(buildMockPayload(0), '已载入演示课表')
-  }
-
-  const copyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(href)
-    } catch {
-      const ta = document.createElement('textarea')
-      ta.value = href
-      document.body.appendChild(ta)
-      ta.select()
-      document.execCommand('copy')
-      document.body.removeChild(ta)
-    }
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 2000)
   }
 
   if (pending) {
@@ -214,63 +171,6 @@ export function GuidePage({ onImport }: Props) {
           先看演示课表（不用上传）
         </button>
       </section>
-
-      <details className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
-        <summary className="cursor-pointer text-sm font-semibold text-ink">
-          备选：复制粘贴文字
-        </summary>
-        <p className="mt-2 text-sm text-muted leading-relaxed">
-          PDF 不好用时，可在教务长按复制课表文字，粘贴到下面。
-        </p>
-        <textarea
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value)
-            setError(null)
-          }}
-          rows={6}
-          placeholder={`在这里长按粘贴…\n\n示例：\n${PASTE_EXAMPLE}`}
-          className="mt-3 w-full resize-y rounded-xl border border-line bg-surface px-3 py-3 text-sm leading-relaxed outline-none focus:border-brand"
-        />
-        <button
-          type="button"
-          onClick={handlePasteImport}
-          className="mt-2 w-full rounded-xl bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark"
-        >
-          从文字导入
-        </button>
-      </details>
-
-      <details className="mt-3 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
-        <summary className="cursor-pointer text-sm font-semibold text-ink">
-          高级：电脑书签（一般不用）
-        </summary>
-        <p className="mt-2 text-sm text-muted leading-relaxed">
-          手机浏览器通常会拦截书签脚本。请优先用上面的 PDF 上传。
-        </p>
-        <input
-          value={target}
-          onChange={(e) => setTarget(e.target.value)}
-          className="mt-3 w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm outline-none focus:border-brand"
-          placeholder={BOOKMARKLET_TARGET_PLACEHOLDER}
-        />
-        <a
-          href={href}
-          onClick={(e) => e.preventDefault()}
-          draggable
-          className="mt-3 flex items-center justify-center rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white"
-          title="拖到书签栏"
-        >
-          川轻化·导入课表（拖到书签栏）
-        </a>
-        <button
-          type="button"
-          onClick={copyCode}
-          className="mt-2 w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium"
-        >
-          {copied ? '已复制' : '复制书签代码'}
-        </button>
-      </details>
     </div>
   )
 }

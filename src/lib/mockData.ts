@@ -1,7 +1,7 @@
 import type { Course, TimetablePayload } from '../types'
 import { parseWeekParity, uid } from './storage'
 
-/** 模拟正方课表数据，便于本地联调；真实页面解析见 bookmarklet */
+/** 模拟正方课表数据，便于本地联调 */
 export const MOCK_COURSES: Omit<Course, 'id' | 'weekParity'>[] = [
   {
     name: '高等数学A',

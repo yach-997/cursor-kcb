@@ -25,41 +25,50 @@ const WEEKDAY_MAP: Record<string, number> = {
   天: 7,
 }
 
-function nearest<T extends { x: number }>(
-  items: T[],
-  x: number,
-  maxDist = 40,
-): T | null {
-  let best: T | null = null
-  let bestDist = Infinity
-  for (const it of items) {
-    const d = Math.abs(it.x - x)
-    // 距离相同则优先选 x >= 查询点的项（正方 PDF 里节次常在课名右侧一点）
-    if (d < bestDist - 0.05 || (Math.abs(d - bestDist) <= 0.05 && best && it.x >= x && best.x < x)) {
-      bestDist = d
-      best = it
-    } else if (d < bestDist) {
-      bestDist = d
-      best = it
-    }
-  }
-  return bestDist <= maxDist ? best : null
-}
-
+/**
+ * 表格式星期判定：落在相邻表头之间时取较近一侧；
+ * 几乎等距时偏左（末列节次常略越过几何中点）。
+ */
 function weekdayForX(
   x: number,
   headers: { x: number; weekday: number }[],
 ): number | null {
   if (!headers.length) return null
   const sorted = [...headers].sort((a, b) => a.x - b.x)
-  // 用相邻表头中点分界
-  for (let i = 0; i < sorted.length; i++) {
-    const left = i === 0 ? -Infinity : (sorted[i - 1].x + sorted[i].x) / 2
-    const right =
-      i === sorted.length - 1 ? Infinity : (sorted[i].x + sorted[i + 1].x) / 2
-    if (x >= left && x < right) return sorted[i].weekday
+  const rightIdx = sorted.findIndex((h) => h.x >= x)
+  if (rightIdx === -1) return sorted[sorted.length - 1].weekday
+  if (rightIdx === 0) return sorted[0].weekday
+  const left = sorted[rightIdx - 1]
+  const right = sorted[rightIdx]
+  const distL = x - left.x
+  const distR = right.x - x
+  // 偏左 8pt：411 距周三 43、周四 42 仍归周三
+  if (distL <= distR + 8) return left.weekday
+  return right.weekday
+}
+
+/** 节次匹配：课名常在节次左侧，近距时略偏好右侧节次 */
+function nearestSection<T extends { x: number }>(
+  items: T[],
+  x: number,
+  maxDist = 45,
+): T | null {
+  let best: T | null = null
+  let bestScore = Infinity
+  for (const it of items) {
+    const d = Math.abs(it.x - x)
+    if (d > maxDist) continue
+    // 节次在课名左侧时加一点代价，避免跨日抢邻列
+    const score = d + (it.x < x - 0.5 ? 2.5 : 0)
+    if (
+      score < bestScore - 0.05 ||
+      (Math.abs(score - bestScore) <= 0.05 && best && it.x >= x && best.x < x)
+    ) {
+      bestScore = score
+      best = it
+    }
   }
-  return sorted[sorted.length - 1].weekday
+  return best
 }
 
 function parseWeeksField(raw: string): { weeks: string; parity: WeekParity } {
@@ -570,26 +579,38 @@ function parseListStyleCourses(items: PdfTextItem[]): Course[] {
         continue
       }
 
-      // 跨页：仅当本锚点也在次页，或首页锚点缺详情时收左侧续写
+      // 跨页续写：下一页左侧碎片，归「本页最右锚点」或「本页按 x 所属锚点」
       if (it.page > mk.item.page) {
-        const isCont =
-          it.x < 200 ||
-          (Math.abs(it.y - mk.item.y) < 8 && it.x < xRight + 40)
-        if (!isCont) continue
-        // 归属：按「同一天次页锚点」的 x 中点划分
-        const pageMarkers = sameDay.filter((m) => m.item.page === it.page)
+        // 只收左侧续写（右栏内容翻页后从左边开始）
+        if (it.x > 240 && it.page === mk.item.page + 1) continue
+
+        const pageMarkers = sameDay
+          .filter((m) => m.item.page === it.page)
+          .sort((a, b) => a.item.x - b.item.x)
+
         if (pageMarkers.length) {
-          let owner = pageMarkers[0]
+          // 落在某个本页锚点左侧之前 → 上一页最右锚点的尾巴
+          let owner: (typeof mk) | null = null
           for (const pm of pageMarkers) {
-            if (pm.item.x <= it.x + 5) owner = pm
+            if (pm.item.x <= it.x + 8) owner = pm
           }
-          if (owner !== mk) continue
-        } else if (mk.item.page === firstPage) {
-          // 首页课的跨页尾巴：只给「该日最右且缺详情」的课 —— 用节次行已含场地则跳过
-          if (/场地|地点|教师/.test(mk.item.str + mk.inlineRest)) continue
-          const rightmost = sameDay.filter((m) => m.item.page === firstPage).at(-1)
+          if (owner) {
+            if (owner !== mk) continue
+          } else {
+            const prevMarkers = sameDay
+              .filter((m) => m.item.page === it.page - 1)
+              .sort((a, b) => a.item.x - b.item.x)
+            const rightmost = prevMarkers.at(-1)
+            if (rightmost !== mk) continue
+          }
+        } else {
+          // 续页没有任何新锚点：全部左侧碎片归上一页该日最右锚点
+          const prevMarkers = sameDay
+            .filter((m) => m.item.page === it.page - 1)
+            .sort((a, b) => a.item.x - b.item.x)
+          const rightmost = prevMarkers.at(-1)
           if (rightmost !== mk) continue
-        } else continue
+        }
         detailParts.push(it)
       }
     }
@@ -663,123 +684,105 @@ function parseListStyleCourses(items: PdfTextItem[]): Course[] {
   return courses
 }
 
-/** 表格式课表：以「周数:」详情块为主键配对课名与节次（比课名主键更稳） */
+/**
+ * 表格式课表：
+ * - 课名与「周数:」详情数量一致，按 x 排序一一对应
+ * - 节次更少（同格多周次共用一个节次标签），按最近邻匹配且允许复用
+ * - 星期以节次列 x 为准（课名落在两日交界时更准）
+ * - 跨页合并星期表头（周日常在第 2 页）
+ */
 function parseGridStyleCourses(items: PdfTextItem[]): Course[] {
   const courses: Course[] = []
   const pages = [...new Set(items.map((it) => it.page))].sort((a, b) => a - b)
 
+  const headerMap = new Map<number, number>()
+  for (const it of items) {
+    const m = it.str.match(WEEKDAY_RE)
+    if (!m) continue
+    const wd = WEEKDAY_MAP[m[1]]
+    if (!headerMap.has(wd)) headerMap.set(wd, it.x)
+  }
+  const headerRef = [...headerMap.entries()]
+    .map(([weekday, x]) => ({ weekday, x }))
+    .sort((a, b) => a.x - b.x)
+
   for (const page of pages) {
     const pageItems = items.filter((it) => it.page === page)
-
-    const headers = pageItems
-      .map((it) => {
-        const m = it.str.match(WEEKDAY_RE)
-        if (!m) return null
-        return { x: it.x, weekday: WEEKDAY_MAP[m[1]] }
-      })
-      .filter((x): x is { x: number; weekday: number } => !!x)
-
-    // 跨页时首页表头可复用
-    const headerRef =
-      headers.length > 0
-        ? headers
-        : items
-            .filter((it) => it.page === pages[0])
-            .map((it) => {
-              const m = it.str.match(WEEKDAY_RE)
-              if (!m) return null
-              return { x: it.x, weekday: WEEKDAY_MAP[m[1]] }
-            })
-            .filter((x): x is { x: number; weekday: number } => !!x)
 
     const names = pageItems
       .filter((it) => NAME_MARK_RE.test(it.str) && !it.str.includes('理论学时'))
       .filter((it) => !it.str.includes('课程设计') && it.str.length < 40)
       .map((it) => ({ x: it.x, y: it.y, str: it.str }))
+      .sort((a, b) => a.x - b.x)
 
     const sections = pageItems
       .map((it) => {
         const m = it.str.trim().match(SECTION_RE)
         if (!m) return null
-        return {
-          x: it.x,
-          start: Number(m[1]),
-          end: Number(m[2]),
-        }
+        return { x: it.x, start: Number(m[1]), end: Number(m[2]) }
       })
       .filter((x): x is { x: number; start: number; end: number } => !!x)
+      .sort((a, b) => a.x - b.x)
 
-    const details = mergeDetailBlocks(pageItems)
+    const details = mergeDetailBlocks(pageItems).sort((a, b) => a.x - b.x)
 
-    const secWithDay = sections
-      .map((s) => ({ ...s, weekday: weekdayForX(s.x, headerRef) }))
-      .filter((s) => s.weekday != null) as {
-      x: number
-      start: number
-      end: number
-      weekday: number
-    }[]
+    type Pair = {
+      name: (typeof names)[0]
+      detail: (typeof details)[0] | null
+    }
+    const pairs: Pair[] = []
 
-    const dayHint = (x: number): number | null => {
-      const nearSec = nearest(secWithDay, x, 50)
-      if (nearSec) return nearSec.weekday
-      return weekdayForX(x, headerRef)
+    if (names.length && names.length === details.length) {
+      for (let i = 0; i < names.length; i++) {
+        pairs.push({ name: names[i], detail: details[i] })
+      }
+    } else {
+      const usedDet = new Set<number>()
+      for (const nameItem of names) {
+        let detIdx = -1
+        let detDist = Infinity
+        for (let i = 0; i < details.length; i++) {
+          if (usedDet.has(i)) continue
+          const d = Math.abs(details[i].x - nameItem.x)
+          if (d < detDist) {
+            detDist = d
+            detIdx = i
+          }
+        }
+        if (detIdx >= 0 && detDist <= 60) usedDet.add(detIdx)
+        pairs.push({
+          name: nameItem,
+          detail: detIdx >= 0 && detDist <= 60 ? details[detIdx] : null,
+        })
+      }
     }
 
-    const detailWithDay = details
-      .map((d) => ({ ...d, weekday: dayHint(d.x) }))
-      .filter((d) => d.weekday != null) as {
-      x: number
-      text: string
-      page: number
-      weekday: number
-    }[]
-
-    const nameWithDay = names
-      .map((n) => ({ ...n, weekday: dayHint(n.x) }))
-      .filter((n) => n.weekday != null) as {
-      x: number
-      y: number
-      str: string
-      weekday: number
-    }[]
-
-    // 详情块数量 ≈ 课次数：逐个详情找最近课名与节次
-    const usedName = new Set<string>()
-    const usedSec = new Set<string>()
-
-    for (const detail of detailWithDay.sort((a, b) => a.x - b.x)) {
-      const colNames = nameWithDay
-        .filter((n) => n.weekday === detail.weekday)
-        .sort((a, b) => a.x - b.x)
-      const colSecs = secWithDay
-        .filter((s) => s.weekday === detail.weekday)
-        .sort((a, b) => a.x - b.x)
-
-      const name =
-        nearest(
-          colNames.filter((n) => !usedName.has(`${n.x}|${n.str}`)),
-          detail.x,
-          55,
-        ) || nearest(colNames, detail.x, 55)
+    for (const { name: nameItem, detail } of pairs) {
+      // 同格多门课共用节次标签，禁止 used 互斥
       const sec =
-        nearest(
-          colSecs.filter((s) => !usedSec.has(`${s.x}|${s.start}|${s.end}`)),
-          detail.x,
-          55,
-        ) || nearest(colSecs, detail.x, 50)
+        nearestSection(sections, nameItem.x, 45) ||
+        (detail ? nearestSection(sections, detail.x, 45) : null)
+      if (!sec) continue
 
-      if (!name || !sec) continue
-      usedName.add(`${name.x}|${name.str}`)
-      usedSec.add(`${sec.x}|${sec.start}|${sec.end}`)
+      const weekday =
+        weekdayForX(sec.x, headerRef) ?? weekdayForX(nameItem.x, headerRef)
+      if (weekday == null) continue
 
-      const parsed = parseDetail(detail.text)
+      const parsed = detail
+        ? parseDetail(detail.text)
+        : {
+            weeks: '1-16',
+            parity: 'all' as WeekParity,
+            room: '未知教室',
+            teacher: '未知教师',
+          }
+
       courses.push({
         id: uid(),
-        name: cleanCourseName(name.str),
+        name: cleanCourseName(nameItem.str),
         teacher: parsed.teacher,
         room: parsed.room,
-        weekday: detail.weekday,
+        weekday,
         startSection: sec.start,
         endSection: sec.end,
         weeks: parsed.weeks,
@@ -873,7 +876,7 @@ export async function extractPdfTextItems(
     )
   }
   throw new Error(
-    'PDF 里没有可读文字。请确认是教务「导出/打印」的课表 PDF（不是截图）；也可展开下方「复制粘贴文字」导入。',
+    'PDF 里没有可读文字。请确认是教务「导出/打印」的课表 PDF（不是截图或扫描件）。',
   )
 }
 

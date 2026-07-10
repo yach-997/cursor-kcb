@@ -1,4 +1,4 @@
-import type { Course, FreshnessInfo, TimetablePayload, WeekParity } from '../types'
+import type { Course, TimetablePayload, WeekParity } from '../types'
 
 const STORAGE_KEY = 'susuc-timetable-v1'
 const CHANNEL_URL_KEY = 'susuc-channel-url'
@@ -93,55 +93,6 @@ export function getChannelUrl(): string {
 
 export function setChannelUrl(url: string): void {
   localStorage.setItem(CHANNEL_URL_KEY, url)
-}
-
-export function daysSince(iso: string): number {
-  const then = new Date(iso).getTime()
-  if (Number.isNaN(then)) return 999
-  const diff = Date.now() - then
-  return Math.floor(diff / (24 * 60 * 60 * 1000))
-}
-
-export function getFreshness(updatedAt?: string | null): FreshnessInfo {
-  if (!updatedAt) {
-    return {
-      level: 'empty',
-      days: null,
-      label: '尚未导入课表，请使用书签导入',
-      bannerClass: 'banner-empty',
-    }
-  }
-  const days = daysSince(updatedAt)
-  if (days <= 3) {
-    return {
-      level: 'fresh',
-      days,
-      label: `数据较新 · ${days === 0 ? '今天' : `${days}天前`}更新`,
-      bannerClass: 'banner-fresh',
-    }
-  }
-  if (days <= 7) {
-    return {
-      level: 'warn',
-      days,
-      label: `建议刷新 · ${days}天前更新`,
-      bannerClass: 'banner-warn',
-    }
-  }
-  if (days <= 14) {
-    return {
-      level: 'stale',
-      days,
-      label: `可能已过期 · ${days}天前更新`,
-      bannerClass: 'banner-stale',
-    }
-  }
-  return {
-    level: 'expired',
-    days,
-    label: `已过期，请重新导入 · ${days}天前更新`,
-    bannerClass: 'banner-expired',
-  }
 }
 
 /** 把任意日期归一到当周周一 YYYY-MM-DD */

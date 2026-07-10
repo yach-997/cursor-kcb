@@ -29,12 +29,3 @@ export interface TimetablePayload {
   /** 第一周周一日期 YYYY-MM-DD，用于推算当前教学周与日期 */
   termStart?: string
 }
-
-export type FreshnessLevel = 'fresh' | 'warn' | 'stale' | 'expired' | 'empty'
-
-export interface FreshnessInfo {
-  level: FreshnessLevel
-  days: number | null
-  label: string
-  bannerClass: string
-}

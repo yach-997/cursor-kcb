@@ -27,9 +27,9 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
     window.setTimeout(() => setMsg(null), 2000)
   }
 
-  const loadDemo = (daysAgo: number) => {
-    onImport(buildMockPayload(daysAgo))
-    flash(daysAgo === 0 ? '已载入演示课表' : `已载入 ${daysAgo} 天前的演示数据`)
+  const loadDemo = () => {
+    onImport(buildMockPayload(0))
+    flash('已载入演示课表')
   }
 
   return (
@@ -96,17 +96,10 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         <div className="mt-3 grid gap-2">
           <button
             type="button"
-            onClick={() => loadDemo(0)}
+            onClick={loadDemo}
             className="rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white"
           >
-            载入演示课表（今天）
-          </button>
-          <button
-            type="button"
-            onClick={() => loadDemo(10)}
-            className="rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium"
-          >
-            载入过期演示（10天前，测弹窗）
+            载入演示课表
           </button>
           <button
             type="button"

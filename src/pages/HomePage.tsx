@@ -1,22 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AddCourseSheet } from '../components/AddCourseSheet'
 import { ChannelCTA } from '../components/ChannelCTA'
-import { StatusBanner } from '../components/StatusBanner'
-import { StaleModal } from '../components/StaleModal'
 import { TermMetaForm } from '../components/TermMetaForm'
 import { TodayView } from '../components/TodayView'
 import { WeekView } from '../components/WeekView'
 import {
   currentTeachingWeek,
-  getFreshness,
   isBeforeTermStart,
   normalizeTermLabel,
   saveTimetable,
 } from '../lib/storage'
 import type { Course, TimetablePayload } from '../types'
-
-const STALE_DISMISS_KEY = 'susuc-stale-dismissed-at'
 
 interface Props {
   data: TimetablePayload | null
@@ -25,7 +20,6 @@ interface Props {
 
 export function HomePage({ data, onUpdate }: Props) {
   const navigate = useNavigate()
-  const freshness = useMemo(() => getFreshness(data?.updatedAt), [data?.updatedAt])
   const needTermMeta = !!(data && data.courses.length > 0 && !data.termStart)
   const beforeTerm = !!(data?.termStart && isBeforeTermStart(data.termStart))
   const teachingWeek = useMemo(() => {
@@ -41,23 +35,9 @@ export function HomePage({ data, onUpdate }: Props) {
   }, [data])
   /** 本周视图：未开学时默认预览第 1 周 */
   const weekViewWeek = teachingWeek ?? (beforeTerm ? 1 : null)
-  const [showStale, setShowStale] = useState(false)
   const [tab, setTab] = useState<'today' | 'week'>('today')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editing, setEditing] = useState<Course | null>(null)
-
-  useEffect(() => {
-    if (!data?.updatedAt) return
-    if (freshness.days == null || freshness.days <= 7) return
-    const dismissed = sessionStorage.getItem(STALE_DISMISS_KEY)
-    if (dismissed === data.updatedAt) return
-    setShowStale(true)
-  }, [data?.updatedAt, freshness.days])
-
-  const dismissStale = () => {
-    if (data?.updatedAt) sessionStorage.setItem(STALE_DISMISS_KEY, data.updatedAt)
-    setShowStale(false)
-  }
 
   const persist = (next: TimetablePayload) => {
     saveTimetable(next)
@@ -155,10 +135,6 @@ export function HomePage({ data, onUpdate }: Props) {
         </div>
       </header>
 
-      <div className="px-3">
-        <StatusBanner info={freshness} />
-      </div>
-
       {needTermMeta && data && (
         <div className="mx-3 mt-2">
           <TermMetaForm
@@ -252,16 +228,6 @@ export function HomePage({ data, onUpdate }: Props) {
         }}
         onSave={saveCourse}
         onDelete={deleteCourse}
-      />
-
-      <StaleModal
-        open={showStale}
-        days={freshness.days ?? 0}
-        onClose={dismissStale}
-        onGoGuide={() => {
-          dismissStale()
-          navigate('/guide')
-        }}
       />
     </div>
   )
