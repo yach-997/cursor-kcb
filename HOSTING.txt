@@ -1,4 +1,5 @@
-# 当前正式访问地址（ShipStatic 边缘托管，手机请用这个）
-https://liminal-dust-ki8z8au.shipstatic.com/
+# 正式永久地址（Vercel）
+https://susuc-kcb.vercel.app/
 
-# 默认 3 天后过期。要永久保留：用电脑打开认领链接（见聊天记录里的 claim 链接）。
+# 以后更新：本地 build 后执行
+#   npx vercel deploy dist --prod --yes --scope wndm

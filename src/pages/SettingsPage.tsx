@@ -61,16 +61,16 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
       <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
         <h2 className="font-semibold text-ink">更新 / 修复识别</h2>
         <p className="mt-1 text-sm text-muted leading-relaxed">
-          请用下面这个地址打开（边缘托管，手机可进）：
+          请用下面这个永久地址打开：
         </p>
         <a
           className="mt-2 block break-all rounded-xl bg-white px-3 py-2 text-sm font-medium text-brand underline border border-brand/20"
-          href="https://liminal-dust-ki8z8au.shipstatic.com/"
+          href="https://susuc-kcb.vercel.app/"
         >
-          https://liminal-dust-ki8z8au.shipstatic.com/
+          https://susuc-kcb.vercel.app/
         </a>
         <p className="mt-2 text-[0.75rem] text-muted leading-relaxed">
-          旧的 github.io / jsDelivr / githack 链接请不要再用。
+          旧的 github.io / ShipStatic 临时链接请不要再用。
         </p>
         <button
           type="button"
@@ -191,9 +191,9 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         <h2 className="font-semibold text-ink">关于</h2>
         <p className="mt-2">四川轻化工大学课表助手 · 纯前端 PWA</p>
         <p className="mt-1">正方教务：61.139.105.138</p>
-        <p className="mt-1">版本 1.1.9</p>
+        <p className="mt-1">版本 1.2.0</p>
         <p className="mt-2 break-all text-xs text-muted">
-          https://liminal-dust-ki8z8au.shipstatic.com/
+          https://susuc-kcb.vercel.app/
         </p>
       </section>
     </div>
