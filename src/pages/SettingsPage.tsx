@@ -187,7 +187,10 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         <h2 className="font-semibold text-ink">关于</h2>
         <p className="mt-2">四川轻化工大学课表助手 · 纯前端 PWA</p>
         <p className="mt-1">正方教务：61.139.105.138</p>
-        <p className="mt-1">版本 1.1.3</p>
+        <p className="mt-1">版本 1.1.4</p>
+        <p className="mt-2 break-all text-xs text-muted">
+          正式地址：https://yach-997.github.io/susuc-kcb/
+        </p>
       </section>
     </div>
   )
