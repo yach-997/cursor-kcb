@@ -7,6 +7,17 @@ import './index.css'
 
 installPdfCompat()
 
+// 去掉强制刷新留下的查询参数，避免地址栏难看
+try {
+  const u = new URL(window.location.href)
+  if (u.searchParams.has('_refresh')) {
+    u.searchParams.delete('_refresh')
+    window.history.replaceState(null, '', u.toString())
+  }
+} catch {
+  /* ignore */
+}
+
 // 有新版本时立刻启用，避免手机一直用旧缓存导致 PDF 识别修不好
 const updateSW = registerSW({
   immediate: true,

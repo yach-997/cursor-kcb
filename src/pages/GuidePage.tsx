@@ -13,6 +13,7 @@ import {
 } from '../lib/importDraft'
 import { parseZfPdfBuffer } from '../lib/parsePdf'
 import { prefetchCriticalCmaps } from '../lib/pdfAssets'
+import { hardRefreshApp } from '../lib/hardRefresh'
 import { buildMockPayload } from '../lib/mockData'
 import { normalizeTermLabel } from '../lib/storage'
 import type { TimetablePayload } from '../types'
@@ -250,9 +251,20 @@ export function GuidePage({ onImport }: Props) {
         )}
 
         {error && (
-          <p className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-expired leading-relaxed">
-            {error}
-          </p>
+          <div className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-expired leading-relaxed">
+            <p>{error}</p>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('清理缓存并刷新页面？课表数据会保留。')) {
+                  void hardRefreshApp({ clearTimetable: false })
+                }
+              }}
+              className="mt-2 w-full rounded-lg bg-white px-3 py-2 text-sm font-semibold text-ink border border-red-200"
+            >
+              清理缓存并刷新后再试
+            </button>
+          </div>
         )}
         {okMsg && (
           <p className="mt-2 rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm text-brand-dark">

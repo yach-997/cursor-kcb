@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { TermMetaForm } from '../components/TermMetaForm'
+import { hardRefreshApp } from '../lib/hardRefresh'
 import { buildMockPayload } from '../lib/mockData'
 import {
   DEFAULT_CHANNEL_URL,
@@ -21,6 +22,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
   const [channel, setChannel] = useState(getChannelUrl)
   const [msg, setMsg] = useState<string | null>(null)
   const [editingTerm, setEditingTerm] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   const flash = (text: string) => {
     setMsg(text)
@@ -32,10 +34,25 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
     flash('已载入演示课表')
   }
 
+  const handleHardRefresh = async (alsoClearTimetable: boolean) => {
+    const tip = alsoClearTimetable
+      ? '将清除课表、缓存并重新加载，确定吗？'
+      : '将清理应用缓存并重新加载（课表数据保留），确定吗？'
+    if (!confirm(tip)) return
+    setRefreshing(true)
+    setMsg('正在清理缓存…')
+    try {
+      await hardRefreshApp({ clearTimetable: alsoClearTimetable })
+    } catch {
+      setRefreshing(false)
+      flash('清理失败，请手动关闭页面后重开')
+    }
+  }
+
   return (
     <div className="flex-1 overflow-y-auto px-4 pb-6 pt-5 animate-fade-in">
       <h1 className="font-display text-2xl font-bold text-ink">设置</h1>
-      <p className="mt-1 text-sm text-muted">数据仅保存在本机 localStorage，不会上传。</p>
+      <p className="mt-1 text-sm text-muted">数据仅保存在本机，不会上传。</p>
 
       {msg && (
         <div className="mt-3 rounded-xl border border-brand/30 bg-brand-soft px-3 py-2 text-sm text-brand-dark">
@@ -43,7 +60,30 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         </div>
       )}
 
-      <section className="mt-6 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
+      <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+        <h2 className="font-semibold text-ink">更新 / 修复识别</h2>
+        <p className="mt-1 text-sm text-muted leading-relaxed">
+          手机导入 PDF 异常、或页面一直是旧版时，点下面按钮清理缓存并刷新。
+        </p>
+        <button
+          type="button"
+          disabled={refreshing}
+          onClick={() => void handleHardRefresh(false)}
+          className="mt-3 w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {refreshing ? '正在清理…' : '清理缓存并刷新'}
+        </button>
+        <button
+          type="button"
+          disabled={refreshing}
+          onClick={() => void handleHardRefresh(true)}
+          className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink disabled:opacity-60"
+        >
+          清理缓存 + 清除课表并刷新
+        </button>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
         <h2 className="font-semibold text-ink">学期信息</h2>
         {data && data.courses.length > 0 ? (
           <>
@@ -144,7 +184,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         <h2 className="font-semibold text-ink">关于</h2>
         <p className="mt-2">四川轻化工大学课表助手 · 纯前端 PWA</p>
         <p className="mt-1">正方教务：61.139.105.138</p>
-        <p className="mt-1">版本 1.0.0</p>
+        <p className="mt-1">版本 1.1.0</p>
       </section>
     </div>
   )
