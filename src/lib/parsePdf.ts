@@ -364,14 +364,15 @@ function parsePracticeCoursesFromText(text: string): Course[] {
       id: uid(),
       name: cleanCourseName(`[实践]${name}`),
       teacher,
-      room: '实践安排(无固定教室)',
-      // 无星期/节次：占周六 1-4 节，便于在对应教学周的周视图中看到
-      weekday: 6,
-      startSection: 1,
-      endSection: 4,
+      room: '无固定教室',
+      // 教务页脚未给星期/节次：不得伪造周六 1-4 节
+      weekday: 0,
+      startSection: 0,
+      endSection: 0,
       weeks,
       weekParity: parity,
       source: 'import',
+      schedule: 'unscheduled',
     })
   }
   return courses
@@ -418,10 +419,11 @@ function parseOtherCoursesFromText(text: string): Course[] {
       weeks: weeksInfo.weeks,
       weekParity: weeksInfo.parity,
       source: 'import',
+      schedule: 'timed',
     })
   }
 
-  // 无「组班上课」时仍保留周次
+  // 无「组班上课」时仍保留周次，但不伪造星期节次
   if (!courses.length) {
     const reLoose =
       /(?:\[([^\]]+)\])?([^★☆\n/；;\[\]]{1,40}?)[★☆■]([^/(（]{0,20})\(共\d+周\)\s*\/\s*([^/;；]+)/g
@@ -435,12 +437,13 @@ function parseOtherCoursesFromText(text: string): Course[] {
         name,
         teacher: (m[3] || '').trim() || '未知教师',
         room: '见教务备注',
-        weekday: 6,
-        startSection: 1,
-        endSection: 2,
+        weekday: 0,
+        startSection: 0,
+        endSection: 0,
         weeks,
         weekParity: parity,
         source: 'import',
+        schedule: 'unscheduled',
       })
     }
   }

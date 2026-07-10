@@ -41,11 +41,20 @@ export function HomePage({ data, onUpdate }: Props) {
 
   const extraCourses = useMemo(() => {
     if (!data) return []
+    // 仅无固定星期/节次的页脚课（实践等）；有组班时间的重修走正常课表格
+    return data.courses.filter(
+      (c) => c.schedule === 'unscheduled' || c.weekday === 0,
+    )
+  }, [data])
+
+  const timedCourses = useMemo(() => {
+    if (!data) return []
     return data.courses.filter(
       (c) =>
-        /^\[(实践|重修|补修|免听)/.test(c.name) ||
-        c.room.includes('实践安排') ||
-        c.room.includes('见教务备注'),
+        c.schedule !== 'unscheduled' &&
+        c.weekday >= 1 &&
+        c.weekday <= 7 &&
+        c.startSection >= 1,
     )
   }, [data])
 
@@ -182,7 +191,7 @@ export function HomePage({ data, onUpdate }: Props) {
           {tab === 'today' ? (
             <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
               <TodayView
-                courses={data.courses}
+                courses={timedCourses}
                 week={teachingWeek}
                 beforeTerm={beforeTerm}
                 onCourseClick={openEditManual}
@@ -192,7 +201,7 @@ export function HomePage({ data, onUpdate }: Props) {
                 <section className="mx-3 mb-3 rounded-2xl border border-amber-200 bg-amber-50/90 p-3">
                   <h2 className="text-sm font-semibold text-ink">实践 / 其他课程</h2>
                   <p className="mt-0.5 text-[0.7rem] text-muted">
-                    来自课表页脚；无固定节次的实践课会标在周六便于查看。
+                    教务页脚未写星期节次，只按周次列出，不会塞进课表格。
                   </p>
                   <ul className="mt-2 space-y-2">
                     {extraCourses.map((c) => (
@@ -202,10 +211,9 @@ export function HomePage({ data, onUpdate }: Props) {
                       >
                         <p className="font-medium text-ink">{c.name}</p>
                         <p className="mt-0.5 text-[0.75rem] text-muted">
-                          {c.teacher} · {c.weeks}周 · {c.room}
-                          {c.weekday >= 1 && c.weekday <= 7
-                            ? ` · 周${'一二三四五六日'[c.weekday - 1]} ${c.startSection}-${c.endSection}节`
-                            : ''}
+                          {c.teacher} · {c.weeks}周
+                          {c.room ? ` · ${c.room}` : ''}
+                          {' · 无固定星期/节次'}
                         </p>
                       </li>
                     ))}
@@ -219,7 +227,7 @@ export function HomePage({ data, onUpdate }: Props) {
           ) : (
             <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
               <WeekView
-                courses={data.courses}
+                courses={timedCourses}
                 suggestedWeek={weekViewWeek}
                 termStart={data.termStart}
                 onCourseClick={openEditManual}
@@ -227,6 +235,9 @@ export function HomePage({ data, onUpdate }: Props) {
               {extraCourses.length > 0 && (
                 <section className="mx-3 mb-3 rounded-2xl border border-amber-200 bg-amber-50/90 p-3">
                   <h2 className="text-sm font-semibold text-ink">实践 / 其他课程</h2>
+                  <p className="mt-0.5 text-[0.7rem] text-muted">
+                    无固定星期/节次，不进入上方课表格。
+                  </p>
                   <ul className="mt-2 space-y-2">
                     {extraCourses.map((c) => (
                       <li
@@ -235,7 +246,9 @@ export function HomePage({ data, onUpdate }: Props) {
                       >
                         <p className="font-medium text-ink">{c.name}</p>
                         <p className="mt-0.5 text-[0.75rem] text-muted">
-                          {c.teacher} · {c.weeks}周 · {c.room}
+                          {c.teacher} · {c.weeks}周
+                          {c.room ? ` · ${c.room}` : ''}
+                          {' · 无固定星期/节次'}
                         </p>
                       </li>
                     ))}

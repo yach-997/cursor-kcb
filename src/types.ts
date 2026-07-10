@@ -6,17 +6,22 @@ export interface Course {
   name: string
   teacher: string
   room: string
-  /** 1=周一 … 7=周日 */
+  /** 1=周一 … 7=周日；0=无固定星期（实践课等页脚条目） */
   weekday: number
-  /** 起始节次（1-based） */
+  /** 起始节次（1-based）；无固定节次时为 0 */
   startSection: number
-  /** 结束节次（含） */
+  /** 结束节次（含）；无固定节次时为 0 */
   endSection: number
   /** 周次描述，如 "1-16" / "1-8单" / "2-16双" / "5"（仅第5周） */
   weeks: string
   weekParity: WeekParity
   /** 学生手动添加的补课/调课；重新导入 PDF 时会保留 */
   source?: 'import' | 'manual'
+  /**
+   * timed=有明确星期节次，进今日/周视图；
+   * unscheduled=仅周次（实践课等），只出现在「实践/其他」列表
+   */
+  schedule?: 'timed' | 'unscheduled'
 }
 
 export interface TimetablePayload {

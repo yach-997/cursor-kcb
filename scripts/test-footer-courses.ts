@@ -39,8 +39,29 @@ for (const c of payload.courses) {
 }
 const okPractice = names.some((n) => n.includes('IT项目实习'))
 const okOther = names.some((n) => n.includes('大学物理B2'))
+const practice = payload.courses.find((c) => c.name.includes('IT项目实习'))
+const other = payload.courses.find((c) => c.name.includes('大学物理B2'))
 if (!okPractice || !okOther) {
   console.error('FAIL', { okPractice, okOther })
   process.exit(1)
 }
-console.log('PASS footer practice + other')
+if (
+  !practice ||
+  practice.schedule !== 'unscheduled' ||
+  practice.weekday !== 0 ||
+  practice.startSection !== 0
+) {
+  console.error('FAIL practice must be unscheduled with no fake slot', practice)
+  process.exit(1)
+}
+if (
+  !other ||
+  other.schedule !== 'timed' ||
+  other.weekday !== 3 ||
+  other.startSection !== 7 ||
+  other.endSection !== 10
+) {
+  console.error('FAIL other must keep real 组班时间', other)
+  process.exit(1)
+}
+console.log('PASS footer practice unscheduled + other timed')
