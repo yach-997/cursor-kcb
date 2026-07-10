@@ -13,13 +13,45 @@
     <meta name="description" content="四川轻化工大学课表助手 · 本地存储 · 零后端" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap"
-      rel="stylesheet"
-    />
     <title>川轻化课表助手</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #eef6f2;
+        color: #14231e;
+        font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+          sans-serif;
+      }
+      #boot {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 24px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+      #boot .logo {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        background: #0d6e5a;
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-size: 1.4rem;
+        font-weight: 700;
+      }
+      #boot p {
+        margin: 0;
+        color: #5a6f67;
+        font-size: 0.95rem;
+      }
+    </style>
     <script>
       /* 尽早杀掉 Service Worker（仅当浏览器真正加载到这份 HTML 时生效） */
       (function () {
@@ -43,7 +75,13 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot">
+        <div class="logo">课</div>
+        <p>课表助手加载中…</p>
+        <p style="font-size: 0.8rem">首次打开可能需要几秒，请稍候</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -32,7 +32,6 @@ jobs:
 
       - name: Build
         env:
-          # 相对路径：GitHub Pages 与 githack 镜像都能用
           VITE_BASE: ./
         run: npm run build
 
@@ -40,6 +39,9 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
+      - name: Rewrite HTML assets to jsDelivr
+        run: node scripts/rewrite-cdn-html.mjs
 
       - name: Publish CDN mirror branch
         uses: peaceiris/actions-gh-pages@v4
@@ -49,6 +51,12 @@ jobs:
           publish_branch: cdn
           force_orphan: true
           commit_message: 'cdn: publish static build'
+
+      - name: Purge jsDelivr cache
+        run: |
+          curl -fsS "https://purge.jsdelivr.net/gh/yach-997/susuc-kcb@cdn/index.html" || true
+          curl -fsS "https://purge.jsdelivr.net/gh/yach-997/susuc-kcb@cdn/" || true
+        continue-on-error: true
 
   deploy:
     needs: build
