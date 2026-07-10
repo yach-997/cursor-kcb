@@ -206,7 +206,7 @@ export function WeekView({ courses, suggestedWeek, termStart }: Props) {
             return (
               <div
                 key={course.id}
-                className="z-10 m-[3px] overflow-hidden rounded-md px-1 py-1 text-white shadow-sm"
+                className="z-10 m-[3px] flex flex-col items-center justify-center overflow-hidden rounded-md px-1 py-1 text-center text-white shadow-sm"
                 style={{
                   gridColumn: course.weekday + 1,
                   gridRow: `${rowStart} / ${rowEnd}`,
