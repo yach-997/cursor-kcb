@@ -68,19 +68,19 @@ jobs:
             echo "同学只需收藏 https://susuc-kcb.shipstatic.com/ ，以后刷新即可。" | tee -a "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          DOMAIN="${SHIP_DOMAIN:-susuc-kcb}"
-          echo "whoami:" 
+          # CLI 要求完整 FQDN；裸名 susuc-kcb 会报 Invalid domain name
+          DOMAIN="${SHIP_DOMAIN:-susuc-kcb.shipstatic.com}"
+          echo "whoami:"
           npx -y @shipstatic/ship whoami --api-key "$SHIP_API_KEY" --json || true
           echo "validate domain:"
           npx -y @shipstatic/ship domains validate "$DOMAIN" --api-key "$SHIP_API_KEY" --json || true
           DEPLOY_ID=$(npx -y @shipstatic/ship ./dist --api-key "$SHIP_API_KEY" -q)
           echo "deployment=$DEPLOY_ID"
-          echo "preview=https://${DEPLOY_ID}.shipstatic.com/"
-          # 平台子域名写法：susuc-kcb → susuc-kcb.shipstatic.com
+          # -q 可能返回带 .shipstatic.com 的完整主机名
           npx -y @shipstatic/ship domains set "$DOMAIN" "$DEPLOY_ID" --api-key "$SHIP_API_KEY" --json
           echo "### 国内固定地址（同学收藏这一个）" >> "$GITHUB_STEP_SUMMARY"
-          echo "https://${DOMAIN}.shipstatic.com/" >> "$GITHUB_STEP_SUMMARY"
-          echo "本次部署预览：https://${DEPLOY_ID}.shipstatic.com/" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://${DOMAIN%/}/" >> "$GITHUB_STEP_SUMMARY"
+          echo "本次部署：${DEPLOY_ID}" >> "$GITHUB_STEP_SUMMARY"
 
   deploy-pages:
     needs: build
