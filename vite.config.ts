@@ -12,6 +12,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      // 临时自毁 SW：用户打开一次后自动注销旧缓存，解决手机卡死在旧版
+      selfDestroying: true,
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'clear.html'],
       manifest: {
