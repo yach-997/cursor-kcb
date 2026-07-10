@@ -1,5 +1,12 @@
-# 正式永久地址（Vercel）
-https://susuc-kcb.vercel.app/
+# 同学只需收藏这一个（配置好 SHIP_API_KEY 后永久有效、自动更新）
+https://susuc-kcb.shipstatic.com/
 
-# 以后更新：本地 build 后执行
-#   npx vercel deploy dist --prod --yes --scope wndm
+# 一次性配置（只需做一次）：
+# 1. 打开 https://my.shipstatic.com → 账户/设置 → 创建 API Key
+# 2. 打开 https://github.com/yach-997/susuc-kcb/settings/secrets/actions
+# 3. 新建 Secret：名字填 SHIP_API_KEY，值粘贴刚才的 Key
+# 4. 告诉我「配好了」，或自己在 Actions 里点一次 Deploy
+# 之后每次我推送更新，同学刷新原链接即可，不用换地址、不用通知。
+
+# 备用（海外，国内可能慢）：
+https://susuc-kcb.vercel.app/
