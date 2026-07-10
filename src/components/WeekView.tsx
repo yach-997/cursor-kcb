@@ -154,25 +154,18 @@ export function WeekView({
         <div className="overflow-hidden rounded-2xl border border-line bg-white/90 shadow-sm">
           {Array.from({ length: sections }, (_, i) => i + 1).map((sec) => {
             const group = byStart.get(sec)
-            const covered = dayCourses.some(
+            const coveredBy = dayCourses.find(
               (c) => c.startSection < sec && c.endSection >= sec,
             )
-            if (covered && !group) return null
-
-            const span = group
-              ? Math.max(
-                  ...group.map((c) =>
-                    Math.max(1, c.endSection - c.startSection + 1),
-                  ),
-                )
-              : 1
 
             return (
               <div
                 key={sec}
                 className="grid grid-cols-[3.2rem_1fr] border-b border-line/70 last:border-b-0"
                 style={{
-                  minHeight: `${Math.max(span, group?.length || 1) * 4.1}rem`,
+                  minHeight: group
+                    ? `${Math.max(group.length, 1) * 4.1}rem`
+                    : '4.1rem',
                 }}
               >
                 <div className="flex flex-col items-center justify-start border-r border-line/70 bg-surface/60 px-0.5 py-2">
@@ -189,17 +182,14 @@ export function WeekView({
                     group.map((course) => (
                       <div
                         key={course.id}
-                        className={`course-chip flex flex-col justify-center ${
+                        className={`course-chip flex min-h-[3.4rem] flex-col justify-center ${
                           course.weekParity === 'odd'
                             ? 'odd-week'
                             : course.weekParity === 'even'
                               ? 'even-week'
                               : ''
                         }`}
-                        style={{
-                          backgroundColor: courseColor(course.name),
-                          minHeight: `${Math.max(1, course.endSection - course.startSection + 1) * 3.2}rem`,
-                        }}
+                        style={{ backgroundColor: courseColor(course.name) }}
                       >
                         <div className="text-[0.78rem] font-semibold leading-snug">
                           {course.name}
@@ -225,8 +215,12 @@ export function WeekView({
                         </div>
                       </div>
                     ))
+                  ) : coveredBy ? (
+                    <div className="flex min-h-[3.4rem] items-center rounded-lg bg-black/[0.03] px-2 text-[0.7rem] text-muted">
+                      ↑ 连堂（{coveredBy.name}）
+                    </div>
                   ) : (
-                    <div className="h-full min-h-[3.5rem] rounded-lg border border-dashed border-transparent" />
+                    <div className="h-full min-h-[3.4rem] rounded-lg border border-dashed border-transparent" />
                   )}
                 </div>
               </div>
