@@ -297,20 +297,116 @@ function mergeDetailBlocks(
   return blocks
 }
 
-function parseOtherCourses(text: string): Course[] {
+function splitGluedNameTeacher(raw: string): { name: string; teacher: string } {
+  const s = raw
+    .replace(/^(实践课程|其他课程)\s*[：:]/, '')
+    .replace(/^[\[【][^\]]*[\]】]/, '')
+    .trim()
+  // 教师姓名多为 2～3 字，优先按 2 字再试 3 字拆开
+  for (const n of [2, 3]) {
+    const m = s.match(new RegExp(`^(.*)([\\u4e00-\\u9fff·]{${n}})$`))
+    if (m && m[1].replace(/\s/g, '').length >= 2) {
+      return { name: m[1].trim(), teacher: m[2] }
+    }
+  }
+  return { name: s, teacher: '未知教师' }
+}
+
+/**
+ * 页脚「实践课程 / 其他课程」：
+ * - 实践课程：IT项目实习黄洪(共2周)/18-19周;（通常无星期/节次）
+ * - 其他课程：[重修]大学物理B2★彭映铨(共8周)/1-8周/无/组班上课：第6-13周 星期三 第7-10节；LA4-206；…
+ * 文本可能被拆成多个 PDF 项，先拼再解析。
+ */
+function collectFooterText(items: PdfTextItem[]): string {
+  const keys = items.filter((it) =>
+    /实践课程|其他课程|组班上课/.test(it.str),
+  )
+  if (!keys.length) return ''
+
+  // 同页、纵坐标接近的碎片一并拼上（防止「其他课程：」与正文拆开）
+  const related: PdfTextItem[] = []
+  for (const key of keys) {
+    for (const it of items) {
+      if (it.page !== key.page) continue
+      if (Math.abs(it.y - key.y) > 28) continue
+      related.push(it)
+    }
+  }
+  const uniq = new Map<string, PdfTextItem>()
+  for (const it of related) {
+    uniq.set(`${it.page}|${it.x}|${it.y}|${it.str}`, it)
+  }
+  return [...uniq.values()]
+    .sort((a, b) => a.page - b.page || a.y - b.y || a.x - b.x)
+    .map((it) => it.str)
+    .join('')
+}
+
+function parsePracticeCoursesFromText(text: string): Course[] {
   const courses: Course[] = []
-  // [重修]大学物理B2★彭映铨(共8周)/1-8周/无/组班上课：第6-13周 星期三 第7-10节；LA4-206；...
-  const re =
-    /\[([^\]]*)\]?([^★☆\n/]+?)[★☆]([^/(]*)\(共\d+周\)\/([^/]+)\/[^/]*\/组班上课：第([\d\-]+)周\s*星期([一二三四五六日天])\s*第([\d\-]+)节[；;]?\s*([^；;]*)/g
+  const block = text.match(/实践课程\s*[：:]\s*([\s\S]*?)(?=其他课程\s*[：:]|组班上课|$)/)
+  if (!block) return courses
+  const body = block[1]
+  // 跳过图例
+  if (/理论学时|实验学时|课程设计\s*★/.test(body) && !/\(共\d+周\)/.test(body)) {
+    return courses
+  }
+  const re = /([^;；]+?)\(共\d+周\)\s*\/\s*([^;；]+)/g
   let m: RegExpExecArray | null
-  while ((m = re.exec(text))) {
+  while ((m = re.exec(body))) {
+    const rawName = m[1].replace(/^实践课程\s*[：:]/, '').trim()
+    if (!rawName || /理论学时|实验学时|图例/.test(rawName)) continue
+    const { name, teacher } = splitGluedNameTeacher(rawName)
+    if (name.length < 2) continue
+    const { weeks, parity } = parseWeeksField(m[2].trim())
+    courses.push({
+      id: uid(),
+      name: cleanCourseName(`[实践]${name}`),
+      teacher,
+      room: '实践安排(无固定教室)',
+      // 无星期/节次：占周六 1-4 节，便于在对应教学周的周视图中看到
+      weekday: 6,
+      startSection: 1,
+      endSection: 4,
+      weeks,
+      weekParity: parity,
+      source: 'import',
+    })
+  }
+  return courses
+}
+
+function parseOtherCoursesFromText(text: string): Course[] {
+  const courses: Course[] = []
+  const blockMatch = text.match(
+    /其他课程\s*[：:]\s*([\s\S]*?)(?=实践课程\s*[：:]|$)/,
+  )
+  let body = blockMatch?.[1]?.trim() || ''
+  if (!body && /组班上课/.test(text)) {
+    body = text
+  }
+  if (!body.trim()) return courses
+
+  // 带组班上课时间的完整条目（标签可选）
+  const reFull =
+    /(?:\[([^\]]+)\])?([^★☆\n/；;\[\]]{1,40}?)[★☆■]([^/(（]{0,20})\(共\d+周\)\s*\/\s*([^/]+)\s*\/\s*[^/]*\s*\/\s*组班上课\s*[：:]\s*第([\d\-~,~～至]+)周\s*星期([一二三四五六日天])\s*第([\d\-~,~～至]+)节\s*[；;]?\s*([^；;\n]*)/g
+  let m: RegExpExecArray | null
+  while ((m = reFull.exec(body))) {
     const tag = m[1] ? `[${m[1]}]` : ''
     const name = cleanCourseName(`${tag}${m[2]}`)
-    const teacher = m[3].trim() || '未知教师'
-    const weeksInfo = parseWeeksField(m[5].includes('-') ? m[5] : m[4])
+    if (!name || name.length < 2 || /其他课程|实践课程/.test(name)) continue
+    const teacher = (m[3] || '').trim() || '未知教师'
+    const weeksInfo = parseWeeksField(
+      m[5].includes('-') || /\d/.test(m[5]) ? m[5] : m[4],
+    )
     const weekday = WEEKDAY_MAP[m[6]] || 1
-    const secParts = m[7].split(/[-~～]/).map(Number)
-    const room = (m[8] || '未知教室').trim() || '未知教室'
+    const secParts = m[7]
+      .split(/[-~～至]/)
+      .map((x) => Number(x.trim()))
+      .filter(Boolean)
+    const room =
+      (m[8] || '未知教室').trim().split(/请|电话|QQ/)[0].trim() || '未知教室'
     courses.push({
       id: uid(),
       name,
@@ -321,9 +417,43 @@ function parseOtherCourses(text: string): Course[] {
       endSection: secParts[1] || secParts[0] || 1,
       weeks: weeksInfo.weeks,
       weekParity: weeksInfo.parity,
+      source: 'import',
     })
   }
+
+  // 无「组班上课」时仍保留周次
+  if (!courses.length) {
+    const reLoose =
+      /(?:\[([^\]]+)\])?([^★☆\n/；;\[\]]{1,40}?)[★☆■]([^/(（]{0,20})\(共\d+周\)\s*\/\s*([^/;；]+)/g
+    while ((m = reLoose.exec(body))) {
+      const tag = m[1] ? `[${m[1]}]` : ''
+      const name = cleanCourseName(`${tag}${m[2]}`)
+      if (!name || name.length < 2 || /其他课程|实践课程/.test(name)) continue
+      const { weeks, parity } = parseWeeksField(m[4])
+      courses.push({
+        id: uid(),
+        name,
+        teacher: (m[3] || '').trim() || '未知教师',
+        room: '见教务备注',
+        weekday: 6,
+        startSection: 1,
+        endSection: 2,
+        weeks,
+        weekParity: parity,
+        source: 'import',
+      })
+    }
+  }
   return courses
+}
+
+function parseFooterExtraCourses(items: PdfTextItem[]): Course[] {
+  const text = collectFooterText(items)
+  if (!text.trim()) return []
+  return [
+    ...parsePracticeCoursesFromText(text),
+    ...parseOtherCoursesFromText(text),
+  ]
 }
 
 /**
@@ -345,6 +475,9 @@ export function parseZfPdfItems(items: PdfTextItem[]): TimetablePayload {
   const courses = isListStylePdf(items)
     ? parseListStyleCourses(items)
     : parseGridStyleCourses(items)
+
+  // 页脚实践课 / 其他课（两种版式共用）
+  courses.push(...parseFooterExtraCourses(items))
 
   // 去重
   const seen = new Set<string>()
@@ -683,12 +816,6 @@ function parseListStyleCourses(items: PdfTextItem[]): Course[] {
     }
   }
 
-  for (const it of items) {
-    if (it.str.includes('其他课程') || it.str.includes('组班上课')) {
-      courses.push(...parseOtherCourses(it.str))
-    }
-  }
-
   return courses
 }
 
@@ -797,12 +924,6 @@ function parseGridStyleCourses(items: PdfTextItem[]): Course[] {
         weekParity: parsed.parity,
         source: 'import',
       })
-    }
-
-    for (const it of pageItems) {
-      if (it.str.includes('其他课程') || it.str.includes('组班上课')) {
-        courses.push(...parseOtherCourses(it.str))
-      }
     }
   }
 

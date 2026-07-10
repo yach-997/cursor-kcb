@@ -39,6 +39,16 @@ export function HomePage({ data, onUpdate }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editing, setEditing] = useState<Course | null>(null)
 
+  const extraCourses = useMemo(() => {
+    if (!data) return []
+    return data.courses.filter(
+      (c) =>
+        /^\[(实践|重修|补修|免听)/.test(c.name) ||
+        c.room.includes('实践安排') ||
+        c.room.includes('见教务备注'),
+    )
+  }, [data])
+
   const persist = (next: TimetablePayload) => {
     saveTimetable(next)
     onUpdate?.(next)
@@ -178,17 +188,61 @@ export function HomePage({ data, onUpdate }: Props) {
                 onCourseClick={openEditManual}
                 onShowWeek={() => setTab('week')}
               />
+              {extraCourses.length > 0 && (
+                <section className="mx-3 mb-3 rounded-2xl border border-amber-200 bg-amber-50/90 p-3">
+                  <h2 className="text-sm font-semibold text-ink">实践 / 其他课程</h2>
+                  <p className="mt-0.5 text-[0.7rem] text-muted">
+                    来自课表页脚；无固定节次的实践课会标在周六便于查看。
+                  </p>
+                  <ul className="mt-2 space-y-2">
+                    {extraCourses.map((c) => (
+                      <li
+                        key={c.id}
+                        className="rounded-xl border border-amber-100 bg-white px-3 py-2 text-sm"
+                      >
+                        <p className="font-medium text-ink">{c.name}</p>
+                        <p className="mt-0.5 text-[0.75rem] text-muted">
+                          {c.teacher} · {c.weeks}周 · {c.room}
+                          {c.weekday >= 1 && c.weekday <= 7
+                            ? ` · 周${'一二三四五六日'[c.weekday - 1]} ${c.startSection}-${c.endSection}节`
+                            : ''}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
               <p className="px-4 pb-3 text-center text-[0.7rem] text-muted">
                 补课/调课点右上角「加课」· 自加的课可点开修改
               </p>
             </div>
           ) : (
-            <WeekView
-              courses={data.courses}
-              suggestedWeek={weekViewWeek}
-              termStart={data.termStart}
-              onCourseClick={openEditManual}
-            />
+            <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+              <WeekView
+                courses={data.courses}
+                suggestedWeek={weekViewWeek}
+                termStart={data.termStart}
+                onCourseClick={openEditManual}
+              />
+              {extraCourses.length > 0 && (
+                <section className="mx-3 mb-3 rounded-2xl border border-amber-200 bg-amber-50/90 p-3">
+                  <h2 className="text-sm font-semibold text-ink">实践 / 其他课程</h2>
+                  <ul className="mt-2 space-y-2">
+                    {extraCourses.map((c) => (
+                      <li
+                        key={c.id}
+                        className="rounded-xl border border-amber-100 bg-white px-3 py-2 text-sm"
+                      >
+                        <p className="font-medium text-ink">{c.name}</p>
+                        <p className="mt-0.5 text-[0.75rem] text-muted">
+                          {c.teacher} · {c.weeks}周 · {c.room}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+            </div>
           )}
         </>
       ) : !data || data.courses.length === 0 ? (
