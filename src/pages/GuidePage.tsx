@@ -40,13 +40,17 @@ export function GuidePage() {
   return (
     <div className="flex-1 overflow-y-auto px-4 pb-6 pt-5 animate-fade-in">
       <h1 className="font-display text-2xl font-bold text-ink">导入课表</h1>
-      <p className="mt-1 text-sm text-muted">用书签从正方教务一键带走课表，数据只存本机。</p>
+      <p className="mt-1 text-sm text-muted leading-relaxed">
+        我们会做一个特殊书签：你在教务课表页点一下它，课表就会自动带回本站。数据只存在你自己的手机/电脑里。
+      </p>
 
       <ol className="mt-6 space-y-4">
         <li className="rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
           <div className="text-xs font-semibold text-brand">步骤 1</div>
-          <h2 className="mt-1 font-semibold text-ink">确认 PWA 地址</h2>
-          <p className="mt-1 text-sm text-muted">部署到 GitHub Pages 后，把下面地址改成你的站点。</p>
+          <h2 className="mt-1 font-semibold text-ink">确认网站地址</h2>
+          <p className="mt-1 text-sm text-muted leading-relaxed">
+            下面一般已经自动填好了，不用改。只有你换了域名才需要改。
+          </p>
           <input
             value={target}
             onChange={(e) => setTarget(e.target.value)}
@@ -57,30 +61,61 @@ export function GuidePage() {
 
         <li className="rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
           <div className="text-xs font-semibold text-brand">步骤 2</div>
-          <h2 className="mt-1 font-semibold text-ink">保存书签</h2>
-          <p className="mt-1 text-sm text-muted">
-            手机：复制下方代码 → 新建书签 → 把网址整段替换成代码。
-            <br />
-            电脑：把绿色按钮拖到书签栏。
+          <h2 className="mt-1 font-semibold text-ink">把「导入工具」存成书签</h2>
+          <p className="mt-1 text-sm text-muted leading-relaxed">
+            这一步不是打开链接，而是把下面的工具存进浏览器书签栏。电脑最简单，手机稍麻烦一点。
           </p>
+
+          <div className="mt-3 rounded-xl bg-brand-soft px-3 py-2.5 text-sm text-brand-dark leading-relaxed">
+            <p className="font-semibold">电脑（推荐，Chrome / Edge）</p>
+            <ol className="mt-1 list-decimal space-y-1 pl-5">
+              <li>
+                先显示书签栏：按 <span className="font-mono text-[0.7rem]">Ctrl + Shift + B</span>
+                ，让浏览器顶部出现一排书签
+              </li>
+              <li>用鼠标按住下面的绿色按钮不放</li>
+              <li>拖到顶部书签栏，松手</li>
+              <li>看到多了一个叫「川轻化·导入课表」的书签，就成功了</li>
+            </ol>
+          </div>
+
           <a
             href={href}
             onClick={(e) => e.preventDefault()}
             draggable
             className="mt-3 flex items-center justify-center rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-md shadow-brand/20"
-            title="拖到书签栏"
+            title="按住拖到书签栏"
           >
-            川轻化·导入课表
+            川轻化·导入课表（拖我到书签栏）
           </a>
+
+          <div className="mt-4 rounded-xl bg-surface px-3 py-2.5 text-sm text-muted leading-relaxed">
+            <p className="font-semibold text-ink">手机（Chrome 举例）</p>
+            <ol className="mt-1 list-decimal space-y-1 pl-5">
+              <li>先点下面灰色按钮，复制代码（按钮会变成「已复制」）</li>
+              <li>点浏览器右上角「☆」或「⋮ → 添加书签」，随便收藏当前页面</li>
+              <li>打开书签列表，找到刚收藏的那条，点编辑</li>
+              <li>名称改成：川轻化·导入课表</li>
+              <li>
+                网址那一栏：把原来的内容全部删掉，长按粘贴刚才复制的代码（很长，以
+                javascript: 开头）
+              </li>
+              <li>保存。以后在教务课表页点这个书签即可</li>
+            </ol>
+            <p className="mt-2 text-[0.75rem] text-muted">
+              若手机保存失败或粘贴不进去，请用电脑按上面方法做，再登录同一浏览器账号同步书签。
+            </p>
+          </div>
+
           <button
             type="button"
             onClick={copyCode}
-            className="mt-2 w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink"
+            className="mt-3 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink"
           >
-            {copied ? '已复制' : '复制 Bookmarklet 代码'}
+            {copied ? '已复制，去粘贴到书签网址栏' : '复制书签代码（手机用）'}
           </button>
           <details className="mt-3">
-            <summary className="cursor-pointer text-xs text-muted">查看代码预览</summary>
+            <summary className="cursor-pointer text-xs text-muted">查看代码预览（一般不用看）</summary>
             <pre className="mt-2 max-h-40 overflow-auto rounded-xl bg-ink p-3 text-[0.65rem] leading-relaxed text-green-200 break-all whitespace-pre-wrap">
               {href.slice(0, 500)}…
             </pre>
@@ -89,11 +124,18 @@ export function GuidePage() {
 
         <li className="rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
           <div className="text-xs font-semibold text-brand">步骤 3</div>
-          <h2 className="mt-1 font-semibold text-ink">在正方课表页点击书签</h2>
-          <p className="mt-1 text-sm text-muted leading-relaxed">
-            打开教务系统课表页（
-            <span className="font-mono text-[0.7rem]">61.139.105.138</span>
-            ），点书签。当前为<strong>模拟数据</strong>模式，会跳回本站并写入示例课表；换成真实解析后，才会导入你的课。
+          <h2 className="mt-1 font-semibold text-ink">去教务课表页点一下书签</h2>
+          <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm text-muted leading-relaxed">
+            <li>
+              打开教务系统并登录：
+              <span className="font-mono text-[0.7rem]">61.139.105.138</span>
+            </li>
+            <li>进入「个人课表」或「学期理论课表」，看到大表格</li>
+            <li>点刚才保存的书签「川轻化·导入课表」</li>
+            <li>浏览器会自动跳回本站，并写入课表</li>
+          </ol>
+          <p className="mt-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 leading-relaxed">
+            注意：现在还是<strong>模拟数据</strong>，点书签会导入示例课表，用来测试流程。等你发来真实课表截图/HTML 后，才会改成导入你的真课。
           </p>
         </li>
       </ol>
