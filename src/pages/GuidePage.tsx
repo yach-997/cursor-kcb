@@ -75,7 +75,10 @@ export function GuidePage({ onImport }: Props) {
       // 避免挂载恢复时反复自动重试失败文件
       saveImportDraft({ pdfBase64: undefined, fileName: name, pending: undefined })
       setOkMsg(null)
-      setError(e instanceof Error ? e.message : 'PDF 解析失败')
+      const raw = e instanceof Error ? e.message : String(e)
+      setError(raw.startsWith('PDF') || raw.includes('识别') || raw.includes('课表')
+        ? raw
+        : `PDF 解析失败：${raw}`)
     } finally {
       parsingRef.current = false
       setBusy(false)

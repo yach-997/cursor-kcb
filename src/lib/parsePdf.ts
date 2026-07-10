@@ -1,16 +1,14 @@
 import type { Course, TimetablePayload, WeekParity } from '../types'
 import { parseWeekParity, uid } from './storage'
-import { installPdfCompat } from './pdfCompat'
-import { readBlobBuffer } from './importDraft'
 import {
   assetRoot,
   createLocalBinaryDataFactory,
-  forcePdfFakeWorker,
+  formatPdfError,
   looksLikeTimetableText,
   withTimeout,
 } from './pdfAssets'
-// Vite 打包 worker，fake worker 会用动态 import 加载它
-import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
+import { installPdfCompat } from './pdfCompat'
+import { readBlobBuffer } from './importDraft'
 
 export interface PdfTextItem {
   str: string
@@ -811,7 +809,10 @@ function parseGridStyleCourses(items: PdfTextItem[]): Course[] {
   return courses
 }
 
-/** 在浏览器中用 pdfjs 提取文本项（手机强制主线程，带超时，避免一直转圈） */
+/**
+ * 提取 PDF 文本。
+ * 通过 globalThis.pdfjsWorker 走官方主线程路径，避免手机 module Worker 卡死。
+ */
 export async function extractPdfTextItems(
   data: ArrayBuffer,
 ): Promise<PdfTextItem[]> {
@@ -819,10 +820,21 @@ export async function extractPdfTextItems(
 
   const run = async () => {
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+    // 必须先挂上 WorkerMessageHandler，pdfjs 才会走主线程而不创建卡住的 Worker
+    const pdfjsWorker = await import(
+      'pdfjs-dist/legacy/build/pdf.worker.min.mjs'
+    )
+    ;(
+      globalThis as unknown as {
+        pdfjsWorker: { WorkerMessageHandler?: unknown }
+      }
+    ).pdfjsWorker = pdfjsWorker
+
     const root = assetRoot()
-    const publicWorker = new URL('pdfjs/pdf.worker.min.mjs', root).href
-    // fake worker 的动态 import 需要可用的 workerSrc
-    const workerSrcs = [pdfWorkerUrl, publicWorker]
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs/pdf.worker.min.mjs',
+      root,
+    ).href
 
     const bytes = new Uint8Array(data.byteLength)
     bytes.set(new Uint8Array(data))
@@ -831,81 +843,71 @@ export async function extractPdfTextItems(
     const localCmap = new URL('pdfjs/cmaps/', root).href
     const localFonts = new URL('pdfjs/standard_fonts/', root).href
 
-    let lastError: unknown = null
-    let bestItems: PdfTextItem[] = []
+    const loadingTask = pdfjs.getDocument({
+      data: bytes.slice(0),
+      useSystemFonts: true,
+      cMapUrl: localCmap,
+      cMapPacked: true,
+      standardFontDataUrl: localFonts,
+      BinaryDataFactory,
+      useWorkerFetch: false,
+      disableStream: true,
+      disableAutoFetch: true,
+      useWasm: false,
+    })
 
-    for (const workerSrc of workerSrcs) {
-      const restoreWorker = forcePdfFakeWorker()
-      try {
-        pdfjs.GlobalWorkerOptions.workerSrc = workerSrc
-        const loadingTask = pdfjs.getDocument({
-          data: bytes.slice(0),
-          useSystemFonts: true,
-          cMapUrl: localCmap,
-          cMapPacked: true,
-          standardFontDataUrl: localFonts,
-          BinaryDataFactory,
-          useWorkerFetch: false,
-          disableStream: true,
-          disableAutoFetch: true,
-          useWasm: false,
-        })
-        const doc = await withTimeout(
-          loadingTask.promise,
-          15000,
-          '打开 PDF 超时，请重试',
+    try {
+      const doc = await withTimeout(
+        loadingTask.promise,
+        20000,
+        '打开 PDF 超时',
+      )
+      const items: PdfTextItem[] = []
+      for (let i = 1; i <= doc.numPages; i++) {
+        const page = await doc.getPage(i)
+        const content = await withTimeout(
+          page.getTextContent(),
+          12000,
+          `读取第 ${i} 页超时`,
         )
-        const items: PdfTextItem[] = []
-        for (let i = 1; i <= doc.numPages; i++) {
-          const page = await doc.getPage(i)
-          const content = await withTimeout(
-            page.getTextContent(),
-            10000,
-            '读取 PDF 文字超时，请重试',
-          )
-          for (const raw of content.items) {
-            if (!('str' in raw) || !raw.str?.trim()) continue
-            const t = raw as { str: string; transform: number[] }
-            items.push({
-              str: t.str,
-              x: +t.transform[4].toFixed(1),
-              y: +t.transform[5].toFixed(1),
-              page: i,
-            })
-          }
+        for (const raw of content.items) {
+          if (!('str' in raw) || !raw.str?.trim()) continue
+          const t = raw as { str: string; transform: number[] }
+          items.push({
+            str: t.str,
+            x: +t.transform[4].toFixed(1),
+            y: +t.transform[5].toFixed(1),
+            page: i,
+          })
         }
-        try {
-          await loadingTask.destroy()
-        } catch {
-          /* ignore */
-        }
-        if (looksLikeTimetableText(items)) return items
-        if (items.length > bestItems.length) bestItems = items
-        lastError = new Error('提取到的文字不像课表')
-      } catch (e) {
-        lastError = e
-      } finally {
-        restoreWorker()
+      }
+
+      if (!items.length) {
+        throw new Error('PDF 里没有可读文字（可能是截图版）')
+      }
+      if (!looksLikeTimetableText(items)) {
+        // 仍交给上层试解析；很多机型中文检测偏严
+        return items
+      }
+      return items
+    } catch (e) {
+      throw new Error(formatPdfError(e))
+    } finally {
+      try {
+        await loadingTask.destroy()
+      } catch {
+        /* ignore */
       }
     }
-
-    if (bestItems.length > 0) return bestItems
-
-    if (lastError) {
-      const msg =
-        lastError instanceof Error ? lastError.message : String(lastError)
-      throw new Error(
-        /timeout|超时|force-fake|worker|fetch|abort|CMap|cmap|network/i.test(msg)
-          ? '识别超时或资源加载失败，请再点一次「选择课表 PDF」重试。'
-          : `PDF 解析失败：${msg}`,
-      )
-    }
-    throw new Error(
-      'PDF 里没有可读文字。请确认是教务「导出/打印」的课表 PDF（不是截图或扫描件）。',
-    )
   }
 
-  return withTimeout(run(), 28000, '识别超时，请重新选择 PDF 再试')
+  try {
+    return await withTimeout(run(), 35000, '识别超时，请重新选择 PDF')
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (/^PDF |^识别|^课表字体|^打开 PDF/.test(msg)) throw e instanceof Error ? e : new Error(msg)
+    throw new Error(formatPdfError(e))
+  }
 }
 
 export async function parseZfPdfFile(file: File): Promise<TimetablePayload> {

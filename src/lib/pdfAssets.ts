@@ -38,23 +38,7 @@ export async function fetchBytesWithTimeout(
   }
 }
 
-/**
- * 很多手机上 `new Worker(..., {type:'module'})` 能创建但不回消息，pdfjs 会一直挂起。
- * 临时让 Worker 构造失败，迫使 pdfjs 走主线程 fake worker。
- */
-export function forcePdfFakeWorker(): () => void {
-  const Original = globalThis.Worker
-  const Patched = function Worker() {
-    throw new Error('force-fake-worker')
-  } as unknown as typeof Worker
-  Patched.prototype = Original.prototype
-  globalThis.Worker = Patched
-  return () => {
-    globalThis.Worker = Original
-  }
-}
-
-/** 仅本地资源（避免外网 CDN 在手机上请求挂死） */
+/** 仅本地资源 + 短超时镜像，避免外网请求把识别卡死 */
 export function createLocalBinaryDataFactory() {
   const root = assetRoot()
   const cmapUrl = new URL('pdfjs/cmaps/', root).href
@@ -89,7 +73,6 @@ export function createLocalBinaryDataFactory() {
       try {
         return await fetchBytesWithTimeout(url, 6000)
       } catch {
-        // 本地失败时再试一个国内镜像（同样有超时，不会一直转）
         const mirror =
           kind === 'cMapUrl'
             ? `https://registry.npmmirror.com/pdfjs-dist/6.1.200/files/cmaps/${filename}`
@@ -127,4 +110,18 @@ export function prefetchCriticalCmaps(): void {
   ]) {
     void fetch(`${base}${name}.bcmap`, { cache: 'force-cache' }).catch(() => {})
   }
+}
+
+export function formatPdfError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err || '未知错误')
+  if (/超时|timeout|abort/i.test(msg)) {
+    return `识别超时：${msg}。请再选一次 PDF 重试。`
+  }
+  if (/CMap|cmap|font|fetch|Failed to fetch|网络/i.test(msg)) {
+    return `课表字体资源加载失败：${msg}。请确认网络正常后重试。`
+  }
+  if (/worker|WorkerMessageHandler|fake worker/i.test(msg)) {
+    return `PDF 引擎初始化失败：${msg}。请完全关闭页面后重开再试。`
+  }
+  return `PDF 解析失败：${msg}`
 }
