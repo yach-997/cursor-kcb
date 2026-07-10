@@ -92,36 +92,33 @@ function parseDetail(detail: string): {
 }
 
 /** 列表式详情：`(3-4节)1-3周,6-13周/校区:…/场地:…/教师:…` */
-function parseListCell(text: string): {
+type ListParsed = {
   name: string
   startSection: number
   endSection: number
   weekParts: { weeks: string; parity: WeekParity }[]
   room: string
   teacher: string
-} | null {
-  const compact = text.replace(/\s+/g, '')
-  const m =
-    compact.match(/^(.+?[★☆■])\((\d{1,2})[-~～](\d{1,2})节\)(.+)$/) ||
-    compact.match(
-      /^([\u4e00-\u9fffA-Za-z0-9（）()\-·]{2,40}?)\((\d{1,2})[-~～](\d{1,2})节\)(.+)$/,
-    )
-  if (!m) return null
+}
 
-  const name = cleanCourseName(
-    (() => {
-      const raw = m[1]
-      const marked = [
-        ...raw.matchAll(/([\u4e00-\u9fffA-Za-z0-9（）()\-·]{1,30}[★☆■])/g),
-      ].map((x) => x[1])
-      if (marked.length) return marked[marked.length - 1]
-      return raw
-    })(),
+function listParsedFromParts(
+  nameRaw: string,
+  startSection: number,
+  endSection: number,
+  rest: string,
+): ListParsed | null {
+  const marked = [
+    ...nameRaw.matchAll(/([\u4e00-\u9fffA-Za-z0-9（）()\-·]{1,30}[★☆■])/g),
+  ].map((x) => x[1])
+  let name = cleanCourseName(marked.at(-1) || nameRaw)
+  // 次页拼接时可能带上上一段「理论学时」残留
+  name = name.replace(/^(理论学|实践学|学时|组成|备注|方式)+/, '')
+  name = name.replace(
+    /^.*?(?=马克思主义|中国共产党|习近平|西方马克思|社会学|伦理学|形势政策|外语|体育)/,
+    '',
   )
-
-  const startSection = Number(m[2])
-  const endSection = Number(m[3])
-  const rest = m[4]
+  if (!name || name.length < 2) return null
+  if (/学分|教学班|考核方式|选课备注|课程学时/.test(name)) return null
 
   const weeksRaw = (rest.split('/')[0] || '1-16').replace(/周/g, '')
   const weekParts = weeksRaw
@@ -129,7 +126,6 @@ function parseListCell(text: string): {
     .map((p) => p.trim())
     .filter(Boolean)
     .map((p) => parseWeeksField(p))
-
   if (!weekParts.length) weekParts.push(parseWeeksField('1-16'))
 
   const room =
@@ -140,6 +136,55 @@ function parseListCell(text: string): {
     rest.match(/教师[:：]?([^/]+)/)?.[1]?.trim() || '未知教师'
 
   return { name, startSection, endSection, weekParts, room, teacher }
+}
+
+/** 一段文字里可能有多门课（次页续写挤在一起时） */
+function parseListCells(text: string): ListParsed[] {
+  const compact = text.replace(/\s+/g, '')
+  if (!compact) return []
+
+  const secRe = /\((\d{1,2})[-~～](\d{1,2})节\)/g
+  const hits = [...compact.matchAll(secRe)]
+  if (!hits.length) return []
+
+  const out: ListParsed[] = []
+  for (let i = 0; i < hits.length; i++) {
+    const hit = hits[i]
+    const secIdx = hit.index ?? 0
+    const prevSecEnd =
+      i === 0 ? 0 : (hits[i - 1].index ?? 0) + hits[i - 1][0].length
+    const nameChunk = compact.slice(prevSecEnd, secIdx)
+    // 课名取「最后一个 ★ 段」，避免吃到上一段「理论学时」等尾巴
+    const starredAll = [
+      ...nameChunk.matchAll(/([\u4e00-\u9fffA-Za-z0-9（）()\-·]{1,30}[★☆■])/g),
+    ]
+    const starred = starredAll.at(-1)?.[1]
+    const plain = nameChunk.match(
+      /([\u4e00-\u9fffA-Za-z0-9（）()\-·]{2,40})$/,
+    )?.[1]
+    const nameRaw = starred || plain || ''
+    if (!nameRaw) continue
+
+    const restStart = secIdx + hit[0].length
+    const restLimit =
+      i + 1 < hits.length ? (hits[i + 1].index ?? compact.length) : compact.length
+    let rest = compact.slice(restStart, restLimit)
+    // 去掉下一段课名
+    rest = rest.replace(/[\u4e00-\u9fffA-Za-z0-9（）()\-·]+[★☆■]?$/, '')
+
+    const parsed = listParsedFromParts(
+      nameRaw,
+      Number(hit[1]),
+      Number(hit[2]),
+      rest,
+    )
+    if (parsed) out.push(parsed)
+  }
+  return out
+}
+
+function parseListCell(text: string): ListParsed | null {
+  return parseListCells(text)[0] ?? null
 }
 
 /** 列表式：同一天内用课名锚点（★ 或独立课名块）切分单元格 */
@@ -497,21 +542,21 @@ function parseListStyleCourses(items: PdfTextItem[]): Course[] {
         .sort((a, b) => a.page - b.page || b.y - a.y || a.x - b.x)
         .map((x) => x.str)
         .join('')
-      const parsed = parseListCell(text)
-      if (!parsed) continue
-      for (const wp of parsed.weekParts) {
-        courses.push({
-          id: uid(),
-          name: parsed.name,
-          teacher: parsed.teacher,
-          room: parsed.room,
-          weekday: bucket.weekday,
-          startSection: parsed.startSection,
-          endSection: parsed.endSection,
-          weeks: wp.weeks,
-          weekParity: wp.parity,
-          source: 'import',
-        })
+      for (const parsed of parseListCells(text)) {
+        for (const wp of parsed.weekParts) {
+          courses.push({
+            id: uid(),
+            name: parsed.name,
+            teacher: parsed.teacher,
+            room: parsed.room,
+            weekday: bucket.weekday,
+            startSection: parsed.startSection,
+            endSection: parsed.endSection,
+            weeks: wp.weeks,
+            weekParity: wp.parity,
+            source: 'import',
+          })
+        }
       }
     }
   }
