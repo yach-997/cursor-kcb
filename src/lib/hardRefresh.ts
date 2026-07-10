@@ -1,9 +1,8 @@
 /**
  * 清理 SW / Cache 后刷新。
  *
- * 不能跳转到 clear.html：旧 Service Worker 会劫持同目录导航，
- * 手机浏览器常直接显示「网站暂时无法打开」。
- * 做法：在当前页清理 → 经 blob: 中转跳出 SW 控制 → 再回首页。
+ * 注意：不要跳 clear.html（旧 SW 会劫持），也不要走 blob: 中转
+ *（华为等国产浏览器常把 blob→https 判成「网站无法打开」）。
  */
 export async function hardRefreshApp(options?: {
   clearTimetable?: boolean
@@ -11,7 +10,7 @@ export async function hardRefreshApp(options?: {
   const clearData = Boolean(options?.clearTimetable)
   const base = import.meta.env.BASE_URL || '/'
   const home =
-    `${window.location.origin}${base}index.html?_v=${Date.now()}` +
+    `${window.location.origin}${base}?_v=${Date.now()}` +
     (clearData ? '&cleared=1' : '') +
     '#/'
 
@@ -48,28 +47,14 @@ export async function hardRefreshApp(options?: {
     /* 仍继续跳转 */
   }
 
-  // blob: 不在 SW scope 内，下一跳不会被旧 Worker 拦截
-  const escapeHtml = `<!doctype html><meta charset="utf-8" />
-<meta http-equiv="Cache-Control" content="no-store" />
-<title>正在进入新版…</title>
-<body style="font-family:sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;background:#eef6f2;color:#14231e;margin:0">
-<p>缓存已清理，正在进入新版…</p>
-<script>
-  location.replace(${JSON.stringify(home)});
-<\/script>
-</body>`
-
-  const blobUrl = URL.createObjectURL(
-    new Blob([escapeHtml], { type: 'text/html;charset=utf-8' }),
-  )
-  window.location.href = blobUrl
+  window.location.replace(home)
 }
 
-/** @deprecated 保留给旧链接；优先用 hardRefreshApp */
 export function clearPageUrl(clearTimetable = false): string {
   const base = import.meta.env.BASE_URL || '/'
-  const url = new URL('update.html', `${window.location.origin}${base}`)
-  url.searchParams.set('t', String(Date.now()))
-  if (clearTimetable) url.searchParams.set('data', '1')
+  const url = new URL(`${window.location.origin}${base}`)
+  url.searchParams.set('_v', String(Date.now()))
+  if (clearTimetable) url.searchParams.set('cleared', '1')
+  url.hash = '/'
   return url.href
 }

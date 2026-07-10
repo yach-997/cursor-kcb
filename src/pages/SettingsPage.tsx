@@ -61,7 +61,14 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
       <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
         <h2 className="font-semibold text-ink">更新 / 修复识别</h2>
         <p className="mt-1 text-sm text-muted leading-relaxed">
-          手机导入 PDF 异常、或页面一直是旧版时，点下面按钮清理缓存并刷新。
+          正式地址：
+          <a
+            className="break-all text-brand underline"
+            href="https://yach-997.github.io/susuc-kcb/"
+          >
+            https://yach-997.github.io/susuc-kcb/
+          </a>
+          。请不要用旧的 cursor-kcb 链接。
         </p>
         <button
           type="button"
@@ -80,9 +87,8 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
           清理缓存 + 清除课表并刷新
         </button>
         <p className="mt-3 text-[0.75rem] text-muted leading-relaxed">
-          若仍停在旧版：地址栏左侧锁头 → 网站设置 →{' '}
-          <b className="text-ink">清除并重置</b>
-          ，并删掉桌面旧图标。或先用无痕打开本站。
+          若点完出现「网站无法打开」：直接重新输入上面的正式地址（不要带
+          index.html），或换 Chrome 打开。
         </p>
       </section>
 
@@ -187,7 +193,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         <h2 className="font-semibold text-ink">关于</h2>
         <p className="mt-2">四川轻化工大学课表助手 · 纯前端 PWA</p>
         <p className="mt-1">正方教务：61.139.105.138</p>
-        <p className="mt-1">版本 1.1.4</p>
+        <p className="mt-1">版本 1.1.5</p>
         <p className="mt-2 break-all text-xs text-muted">
           正式地址：https://yach-997.github.io/susuc-kcb/
         </p>
