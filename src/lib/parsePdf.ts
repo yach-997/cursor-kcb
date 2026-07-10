@@ -1,5 +1,6 @@
 import type { Course, TimetablePayload, WeekParity } from '../types'
 import { parseWeekParity, uid } from './storage'
+import { installPdfCompat } from './pdfCompat'
 
 export interface PdfTextItem {
   str: string
@@ -380,6 +381,7 @@ export function parseZfPdfItems(items: PdfTextItem[]): TimetablePayload {
 export async function extractPdfTextItems(
   data: ArrayBuffer,
 ): Promise<PdfTextItem[]> {
+  installPdfCompat()
   const pdfjs = await import('pdfjs-dist')
   const base = import.meta.env.BASE_URL || '/'
   pdfjs.GlobalWorkerOptions.workerSrc = `${base}pdfjs/pdf.worker.min.mjs`

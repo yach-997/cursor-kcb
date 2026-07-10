@@ -1,3 +1,5 @@
+﻿/* pdf compat polyfill for older mobile browsers */
+(function(){var p=Uint8Array.prototype;if(typeof p.toHex!=="function"){Object.defineProperty(p,"toHex",{value:function(){var h="",i=0;for(;i<this.length;i++)h+=this[i].toString(16).padStart(2,"0");return h},writable:true,configurable:true})}var m=Map.prototype;if(typeof m.getOrInsertComputed!=="function"){Object.defineProperty(m,"getOrInsertComputed",{value:function(k,f){if(this.has(k))return this.get(k);var v=f(k);this.set(k,v);return v},writable:true,configurable:true})}if(typeof Promise.withResolvers!=="function"){Promise.withResolvers=function(){var a,b,c=new Promise(function(d,e){a=d;b=e});return{promise:c,resolve:a,reject:b}}}})();
 /**
  * @licstart The following is the entire license notice for the
  * JavaScript code in this page
