@@ -1,6 +1,7 @@
 import type { Course } from '../types'
 import {
   SECTION_TIMES,
+  SECTION_TIME_RANGES,
   WEEKDAY_LABELS,
   courseColor,
   maxSection,
@@ -103,9 +104,14 @@ export function WeekView({
                 className="grid grid-cols-[3.2rem_1fr] border-b border-line/70 last:border-b-0"
                 style={{ minHeight: `${Math.max(span, group?.length || 1) * 4.1}rem` }}
               >
-                <div className="flex flex-col items-center justify-start border-r border-line/70 bg-surface/60 py-2">
+                <div className="flex flex-col items-center justify-start border-r border-line/70 bg-surface/60 py-2 px-0.5">
                   <span className="text-xs font-semibold text-ink">{sec}</span>
-                  <span className="text-[0.6rem] text-muted">{SECTION_TIMES[sec] || ''}</span>
+                  <span className="mt-0.5 whitespace-pre-line text-center text-[0.55rem] leading-tight text-muted">
+                    {(SECTION_TIME_RANGES[sec] || SECTION_TIMES[sec] || '').replace(
+                      '-',
+                      '\n',
+                    )}
+                  </span>
                 </div>
                 <div className="flex flex-col gap-1.5 p-1.5">
                   {group ? (
