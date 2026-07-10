@@ -1,6 +1,6 @@
 /**
  * pdfjs-dist 5.4+ / 6.x 依赖较新的 JS API。
- * 国产手机自带浏览器 / 旧 WebView 常缺这些方法，必须补齐。
+ * 国产手机自带浏览器 / 旧 WebView / 多数 Safari 常缺这些方法，必须补齐。
  */
 export function installPdfCompat(): void {
   const u8 = Uint8Array.prototype as Uint8Array & {
@@ -91,7 +91,6 @@ export function installPdfCompat(): void {
     }
   }
 
-  // Array.prototype.at — 部分旧机没有
   if (typeof Array.prototype.at !== 'function') {
     Object.defineProperty(Array.prototype, 'at', {
       value(this: unknown[], index: number) {
@@ -109,6 +108,61 @@ export function installPdfCompat(): void {
       value(obj: object, prop: PropertyKey) {
         return Object.prototype.hasOwnProperty.call(obj, prop)
       },
+      writable: true,
+      configurable: true,
+    })
+  }
+
+  /**
+   * pdf.js 6 用 for-await 读 ReadableStream。
+   * 多数手机浏览器没有 asyncIterator，会报：t is not async iterable
+   */
+  polyfillReadableStreamAsyncIterator()
+}
+
+function polyfillReadableStreamAsyncIterator(): void {
+  const RS = (
+    globalThis as unknown as {
+      ReadableStream?: {
+        prototype: ReadableStream & {
+          [Symbol.asyncIterator]?: () => AsyncIterator<unknown>
+          values?: () => AsyncIterator<unknown>
+        }
+      }
+    }
+  ).ReadableStream
+  if (!RS?.prototype) return
+
+  const proto = RS.prototype
+  if (typeof proto[Symbol.asyncIterator] === 'function') return
+
+  const asyncIter = async function* (
+    this: ReadableStream,
+  ): AsyncGenerator<unknown> {
+    const reader = this.getReader()
+    try {
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) return
+        yield value
+      }
+    } finally {
+      try {
+        reader.releaseLock()
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  Object.defineProperty(proto, Symbol.asyncIterator, {
+    value: asyncIter,
+    writable: true,
+    configurable: true,
+  })
+  if (typeof proto.values !== 'function') {
+    Object.defineProperty(proto, 'values', {
+      value: asyncIter,
       writable: true,
       configurable: true,
     })

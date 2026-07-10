@@ -114,6 +114,9 @@ export function prefetchCriticalCmaps(): void {
 
 export function formatPdfError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err || '未知错误')
+  if (/async iterable|asyncIterator|ReadableStream/i.test(msg)) {
+    return `当前手机浏览器缺异步流支持，已尝试兼容仍失败：${msg}。请更新系统浏览器后重试。`
+  }
   if (/超时|timeout|abort/i.test(msg)) {
     return `识别超时：${msg}。请再选一次 PDF 重试。`
   }
