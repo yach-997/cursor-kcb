@@ -382,34 +382,78 @@ export async function extractPdfTextItems(
   data: ArrayBuffer,
 ): Promise<PdfTextItem[]> {
   installPdfCompat()
-  const pdfjs = await import('pdfjs-dist')
+  // legacy 构建对中文 CMap / 旧手机更稳
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+  const origin = window.location.origin
   const base = import.meta.env.BASE_URL || '/'
-  pdfjs.GlobalWorkerOptions.workerSrc = `${base}pdfjs/pdf.worker.min.mjs`
+  const root = new URL(base, origin).href.replace(/\/?$/, '/')
+  const workerSrc = new URL('pdfjs/pdf.worker.min.mjs', root).href
+  const localCmap = new URL('pdfjs/cmaps/', root).href
+  const localFonts = new URL('pdfjs/standard_fonts/', root).href
+  const cdnCmap = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/cmaps/'
+  const cdnFonts =
+    'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/standard_fonts/'
 
-  const loadingTask = pdfjs.getDocument({
-    data: new Uint8Array(data),
-    useSystemFonts: true,
-    cMapUrl: `${base}pdfjs/cmaps/`,
-    cMapPacked: true,
-    standardFontDataUrl: `${base}pdfjs/standard_fonts/`,
-  })
-  const doc = await loadingTask.promise
-  const items: PdfTextItem[] = []
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i)
-    const content = await page.getTextContent()
-    for (const raw of content.items) {
-      if (!('str' in raw) || !raw.str?.trim()) continue
-      const t = raw as { str: string; transform: number[] }
-      items.push({
-        str: t.str,
-        x: +t.transform[4].toFixed(1),
-        y: +t.transform[5].toFixed(1),
-        page: i,
-      })
+  const bytes = new Uint8Array(data.slice(0))
+
+  const tryLoad = async (opts: {
+    cMapUrl: string
+    standardFontDataUrl: string
+    worker: boolean
+  }) => {
+    pdfjs.GlobalWorkerOptions.workerSrc = opts.worker ? workerSrc : ''
+    const loadingTask = pdfjs.getDocument({
+      data: bytes.slice(0),
+      useSystemFonts: true,
+      cMapUrl: opts.cMapUrl,
+      cMapPacked: true,
+      standardFontDataUrl: opts.standardFontDataUrl,
+    })
+    const doc = await loadingTask.promise
+    const items: PdfTextItem[] = []
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i)
+      const content = await page.getTextContent()
+      for (const raw of content.items) {
+        if (!('str' in raw) || !raw.str?.trim()) continue
+        const t = raw as { str: string; transform: number[] }
+        items.push({
+          str: t.str,
+          x: +t.transform[4].toFixed(1),
+          y: +t.transform[5].toFixed(1),
+          page: i,
+        })
+      }
+    }
+    return items
+  }
+
+  const attempts = [
+    { cMapUrl: localCmap, standardFontDataUrl: localFonts, worker: false },
+    { cMapUrl: localCmap, standardFontDataUrl: localFonts, worker: true },
+    { cMapUrl: cdnCmap, standardFontDataUrl: cdnFonts, worker: false },
+  ]
+
+  let lastError: unknown = null
+  for (const attempt of attempts) {
+    try {
+      const items = await tryLoad(attempt)
+      if (items.length > 0) return items
+    } catch (e) {
+      lastError = e
     }
   }
-  return items
+
+  if (lastError) {
+    throw new Error(
+      lastError instanceof Error
+        ? `PDF 解析失败：${lastError.message}`
+        : 'PDF 解析失败',
+    )
+  }
+  throw new Error(
+    'PDF 里没有可读文字。请确认是教务「导出/打印」的课表 PDF（不是截图）；也可展开下方「复制粘贴文字」导入。',
+  )
 }
 
 export async function parseZfPdfFile(file: File): Promise<TimetablePayload> {
