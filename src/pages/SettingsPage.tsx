@@ -61,7 +61,6 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
       <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
         <h2 className="font-semibold text-ink">更新 / 修复识别</h2>
         <p className="mt-1 text-sm text-muted leading-relaxed">
-        <p className="mt-1 text-sm text-muted leading-relaxed">
           同学请收藏这一个固定地址（更新后刷新即可，不用换链接）：
         </p>
         <a
