@@ -4,10 +4,12 @@ import { installPdfCompat } from './pdfCompat'
 import { readBlobBuffer } from './importDraft'
 import {
   assetRoot,
-  createMultiBinaryDataFactory,
+  createLocalBinaryDataFactory,
+  forcePdfFakeWorker,
   looksLikeTimetableText,
+  withTimeout,
 } from './pdfAssets'
-// Vite 打包 worker，路径随 base 自动正确，比 public 下手写路径更稳
+// Vite 打包 worker，fake worker 会用动态 import 加载它
 import pdfWorkerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'
 
 export interface PdfTextItem {
@@ -809,90 +811,101 @@ function parseGridStyleCourses(items: PdfTextItem[]): Course[] {
   return courses
 }
 
-/** 在浏览器中用 pdfjs 提取文本项（针对各品牌手机浏览器加固） */
+/** 在浏览器中用 pdfjs 提取文本项（手机强制主线程，带超时，避免一直转圈） */
 export async function extractPdfTextItems(
   data: ArrayBuffer,
 ): Promise<PdfTextItem[]> {
   installPdfCompat()
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
-  const root = assetRoot()
-  const publicWorker = new URL('pdfjs/pdf.worker.min.mjs', root).href
-  const workerCandidates = [pdfWorkerUrl, publicWorker]
+  const run = async () => {
+    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+    const root = assetRoot()
+    const publicWorker = new URL('pdfjs/pdf.worker.min.mjs', root).href
+    // fake worker 的动态 import 需要可用的 workerSrc
+    const workerSrcs = [pdfWorkerUrl, publicWorker]
 
-  // 拷贝一份，避免部分手机上底层转移 ArrayBuffer 后二次尝试失败
-  const bytes = new Uint8Array(data.byteLength)
-  bytes.set(new Uint8Array(data))
+    const bytes = new Uint8Array(data.byteLength)
+    bytes.set(new Uint8Array(data))
 
-  const BinaryDataFactory = createMultiBinaryDataFactory()
-  const localCmap = new URL('pdfjs/cmaps/', root).href
-  const localFonts = new URL('pdfjs/standard_fonts/', root).href
+    const BinaryDataFactory = createLocalBinaryDataFactory()
+    const localCmap = new URL('pdfjs/cmaps/', root).href
+    const localFonts = new URL('pdfjs/standard_fonts/', root).href
 
-  const tryLoad = async (workerSrc: string) => {
-    pdfjs.GlobalWorkerOptions.workerSrc = workerSrc
-    const loadingTask = pdfjs.getDocument({
-      data: bytes.slice(0),
-      useSystemFonts: true,
-      cMapUrl: localCmap,
-      cMapPacked: true,
-      standardFontDataUrl: localFonts,
-      BinaryDataFactory,
-      // 走主线程 BinaryDataFactory，便于多源回退（各品牌手机更稳）
-      useWorkerFetch: false,
-      disableStream: true,
-      disableAutoFetch: true,
-      useWasm: false,
-    })
-    const doc = await loadingTask.promise
-    const items: PdfTextItem[] = []
-    for (let i = 1; i <= doc.numPages; i++) {
-      const page = await doc.getPage(i)
-      const content = await page.getTextContent()
-      for (const raw of content.items) {
-        if (!('str' in raw) || !raw.str?.trim()) continue
-        const t = raw as { str: string; transform: number[] }
-        items.push({
-          str: t.str,
-          x: +t.transform[4].toFixed(1),
-          y: +t.transform[5].toFixed(1),
-          page: i,
+    let lastError: unknown = null
+    let bestItems: PdfTextItem[] = []
+
+    for (const workerSrc of workerSrcs) {
+      const restoreWorker = forcePdfFakeWorker()
+      try {
+        pdfjs.GlobalWorkerOptions.workerSrc = workerSrc
+        const loadingTask = pdfjs.getDocument({
+          data: bytes.slice(0),
+          useSystemFonts: true,
+          cMapUrl: localCmap,
+          cMapPacked: true,
+          standardFontDataUrl: localFonts,
+          BinaryDataFactory,
+          useWorkerFetch: false,
+          disableStream: true,
+          disableAutoFetch: true,
+          useWasm: false,
         })
+        const doc = await withTimeout(
+          loadingTask.promise,
+          15000,
+          '打开 PDF 超时，请重试',
+        )
+        const items: PdfTextItem[] = []
+        for (let i = 1; i <= doc.numPages; i++) {
+          const page = await doc.getPage(i)
+          const content = await withTimeout(
+            page.getTextContent(),
+            10000,
+            '读取 PDF 文字超时，请重试',
+          )
+          for (const raw of content.items) {
+            if (!('str' in raw) || !raw.str?.trim()) continue
+            const t = raw as { str: string; transform: number[] }
+            items.push({
+              str: t.str,
+              x: +t.transform[4].toFixed(1),
+              y: +t.transform[5].toFixed(1),
+              page: i,
+            })
+          }
+        }
+        try {
+          await loadingTask.destroy()
+        } catch {
+          /* ignore */
+        }
+        if (looksLikeTimetableText(items)) return items
+        if (items.length > bestItems.length) bestItems = items
+        lastError = new Error('提取到的文字不像课表')
+      } catch (e) {
+        lastError = e
+      } finally {
+        restoreWorker()
       }
     }
-    return items
-  }
 
-  let lastError: unknown = null
-  let bestItems: PdfTextItem[] = []
+    if (bestItems.length > 0) return bestItems
 
-  for (const workerSrc of workerCandidates) {
-    try {
-      const items = await tryLoad(workerSrc)
-      if (looksLikeTimetableText(items)) return items
-      if (items.length > bestItems.length) bestItems = items
-      lastError = new Error('提取到的文字不像课表，继续尝试…')
-    } catch (e) {
-      lastError = e
-    }
-  }
-
-  // 退而求其次：有文字就交给上层解析（可能仍能识别）
-  if (bestItems.length > 0) return bestItems
-
-  if (lastError) {
-    const msg =
-      lastError instanceof Error ? lastError.message : String(lastError)
-    throw new Error(
-      /toHex|toBase64|getOrInsert|withResolvers|worker|fetch|network|Failed to fetch|CMap|cmap/i.test(
-        msg,
+    if (lastError) {
+      const msg =
+        lastError instanceof Error ? lastError.message : String(lastError)
+      throw new Error(
+        /timeout|超时|force-fake|worker|fetch|abort|CMap|cmap|network/i.test(msg)
+          ? '识别超时或资源加载失败，请再点一次「选择课表 PDF」重试。'
+          : `PDF 解析失败：${msg}`,
       )
-        ? '手机解析 PDF 失败，请确认上传的是教务「导出/打印」的课表文件后重试。若仍失败，可换 Chrome / Safari 再试一次。'
-        : `PDF 解析失败：${msg}`,
+    }
+    throw new Error(
+      'PDF 里没有可读文字。请确认是教务「导出/打印」的课表 PDF（不是截图或扫描件）。',
     )
   }
-  throw new Error(
-    'PDF 里没有可读文字。请确认是教务「导出/打印」的课表 PDF（不是截图或扫描件）。',
-  )
+
+  return withTimeout(run(), 28000, '识别超时，请重新选择 PDF 再试')
 }
 
 export async function parseZfPdfFile(file: File): Promise<TimetablePayload> {

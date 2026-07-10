@@ -230,8 +230,14 @@ export function GuidePage({ onImport }: Props) {
             busy ? 'pointer-events-none opacity-60' : ''
           }`}
         >
-          {busy ? '正在识别课表…' : '选择课表 PDF'}
+          {busy ? '正在识别…最多约 30 秒' : '选择课表 PDF'}
         </label>
+
+        {busy && (
+          <p className="mt-2 text-center text-[0.75rem] text-muted">
+            手机端在主线程解析，请稍候；超时会自动提示，不会一直转
+          </p>
+        )}
 
         {fileName && (
           <p className="mt-2 truncate text-center text-[0.75rem] text-muted">

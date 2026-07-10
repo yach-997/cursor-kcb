@@ -1,14 +1,70 @@
-/** 多源加载 CMap / 字体，本地优先，国内镜像兜底 */
-export function createMultiBinaryDataFactory() {
-  const cmapUrls = cmapCandidateUrls()
-  const fontUrls = fontCandidateUrls()
+/** 带超时的 Promise */
+export function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  message: string,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), ms)
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer)
+        resolve(value)
+      },
+      (err) => {
+        window.clearTimeout(timer)
+        reject(err)
+      },
+    )
+  })
+}
 
-  return class MultiBinaryDataFactory {
-    cMapUrl = cmapUrls[0]
-    standardFontDataUrl = fontUrls[0]
+export async function fetchBytesWithTimeout(
+  url: string,
+  ms = 5000,
+): Promise<Uint8Array> {
+  const ac = new AbortController()
+  const timer = window.setTimeout(() => ac.abort(), ms)
+  try {
+    const res = await fetch(url, {
+      signal: ac.signal,
+      cache: 'force-cache',
+      mode: 'cors',
+    })
+    if (!res.ok) throw new Error(`${url} → ${res.status}`)
+    return new Uint8Array(await res.arrayBuffer())
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
+/**
+ * 很多手机上 `new Worker(..., {type:'module'})` 能创建但不回消息，pdfjs 会一直挂起。
+ * 临时让 Worker 构造失败，迫使 pdfjs 走主线程 fake worker。
+ */
+export function forcePdfFakeWorker(): () => void {
+  const Original = globalThis.Worker
+  const Patched = function Worker() {
+    throw new Error('force-fake-worker')
+  } as unknown as typeof Worker
+  Patched.prototype = Original.prototype
+  globalThis.Worker = Patched
+  return () => {
+    globalThis.Worker = Original
+  }
+}
+
+/** 仅本地资源（避免外网 CDN 在手机上请求挂死） */
+export function createLocalBinaryDataFactory() {
+  const root = assetRoot()
+  const cmapUrl = new URL('pdfjs/cmaps/', root).href
+  const fontUrl = new URL('pdfjs/standard_fonts/', root).href
+
+  return class LocalBinaryDataFactory {
+    cMapUrl = cmapUrl
+    standardFontDataUrl = fontUrl
     wasmUrl: string | null = null
 
-    // pdfjs 会传入 url，这里忽略，改走多源列表
     constructor(_opts?: {
       cMapUrl?: string | null
       standardFontDataUrl?: string | null
@@ -22,33 +78,24 @@ export function createMultiBinaryDataFactory() {
       kind: string
       filename: string
     }): Promise<Uint8Array> {
-      const urls =
+      const base =
         kind === 'cMapUrl'
-          ? cmapUrls
+          ? this.cMapUrl
           : kind === 'standardFontDataUrl'
-            ? fontUrls
-            : []
-      if (!urls.length) {
-        throw new Error(`不支持的资源类型：${kind}`)
+            ? this.standardFontDataUrl
+            : null
+      if (!base) throw new Error(`不支持的资源类型：${kind}`)
+      const url = `${base.endsWith('/') ? base : `${base}/`}${filename}`
+      try {
+        return await fetchBytesWithTimeout(url, 6000)
+      } catch {
+        // 本地失败时再试一个国内镜像（同样有超时，不会一直转）
+        const mirror =
+          kind === 'cMapUrl'
+            ? `https://registry.npmmirror.com/pdfjs-dist/6.1.200/files/cmaps/${filename}`
+            : `https://registry.npmmirror.com/pdfjs-dist/6.1.200/files/standard_fonts/${filename}`
+        return await fetchBytesWithTimeout(mirror, 6000)
       }
-      let lastError: unknown = null
-      for (const base of urls) {
-        const root = base.endsWith('/') ? base : `${base}/`
-        const url = `${root}${filename}`
-        try {
-          const res = await fetch(url, { cache: 'force-cache', mode: 'cors' })
-          if (!res.ok) {
-            lastError = new Error(`${url} → ${res.status}`)
-            continue
-          }
-          return new Uint8Array(await res.arrayBuffer())
-        } catch (e) {
-          lastError = e
-        }
-      }
-      throw lastError instanceof Error
-        ? lastError
-        : new Error(`资源加载失败：${kind}/${filename}`)
     }
   }
 }
@@ -59,27 +106,6 @@ export function assetRoot(): string {
   return new URL(base, origin).href.replace(/\/?$/, '/')
 }
 
-export function cmapCandidateUrls(): string[] {
-  const root = assetRoot()
-  return [
-    new URL('pdfjs/cmaps/', root).href,
-    'https://registry.npmmirror.com/pdfjs-dist/6.1.200/files/cmaps/',
-    'https://unpkg.com/pdfjs-dist@6.1.200/cmaps/',
-    'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/cmaps/',
-  ]
-}
-
-export function fontCandidateUrls(): string[] {
-  const root = assetRoot()
-  return [
-    new URL('pdfjs/standard_fonts/', root).href,
-    'https://registry.npmmirror.com/pdfjs-dist/6.1.200/files/standard_fonts/',
-    'https://unpkg.com/pdfjs-dist@6.1.200/standard_fonts/',
-    'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.1.200/standard_fonts/',
-  ]
-}
-
-/** 提取结果是否像正方课表（避免乱码/空壳也当成功） */
 export function looksLikeTimetableText(items: { str: string }[]): boolean {
   if (items.length < 8) return false
   const text = items.map((i) => i.str).join('')
@@ -89,17 +115,16 @@ export function looksLikeTimetableText(items: { str: string }[]): boolean {
   return hans >= 20
 }
 
-/** 预热常用中文 CMap，降低首启失败率 */
 export function prefetchCriticalCmaps(): void {
-  const names = [
+  const root = assetRoot()
+  const base = new URL('pdfjs/cmaps/', root).href
+  for (const name of [
     'Adobe-GB1-UCS2',
     'GBK-EUC-H',
     'GB-EUC-H',
     'UniGB-UCS2-H',
     'GB-H',
-  ]
-  const base = cmapCandidateUrls()[0]
-  for (const name of names) {
+  ]) {
     void fetch(`${base}${name}.bcmap`, { cache: 'force-cache' }).catch(() => {})
   }
 }
