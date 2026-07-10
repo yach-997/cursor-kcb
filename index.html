@@ -20,6 +20,27 @@
       rel="stylesheet"
     />
     <title>川轻化课表助手</title>
+    <script>
+      /* 尽早杀掉 Service Worker（仅当浏览器真正加载到这份 HTML 时生效） */
+      (function () {
+        try {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              regs.forEach(function (r) {
+                r.unregister()
+              })
+            })
+          }
+          if (window.caches) {
+            caches.keys().then(function (keys) {
+              keys.forEach(function (k) {
+                caches.delete(k)
+              })
+            })
+          }
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

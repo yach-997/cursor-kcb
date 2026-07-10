@@ -7,16 +7,31 @@
     <title>强制更新课表助手</title>
     <style>
       body {
-        font-family: sans-serif;
+        font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
         max-width: 420px;
-        margin: 40px auto;
-        padding: 0 16px;
-        line-height: 1.6;
-        color: #142;
+        margin: 32px auto;
+        padding: 0 16px 40px;
+        line-height: 1.65;
+        color: #14231e;
+        background: #eef6f2;
+      }
+      h1 {
+        font-size: 1.35rem;
+      }
+      .card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 16px;
+        margin: 14px 0;
+        border: 1px solid #d7e5df;
+      }
+      .card.hot {
+        border-color: #0d6e5a;
+        box-shadow: 0 6px 20px rgba(13, 110, 90, 0.12);
       }
       a.btn {
         display: block;
-        margin: 12px 0;
+        margin-top: 12px;
         padding: 14px;
         background: #0d6e5a;
         color: #fff;
@@ -25,45 +40,71 @@
         border-radius: 12px;
         font-weight: 700;
       }
+      a.btn2 {
+        display: block;
+        margin-top: 10px;
+        padding: 12px;
+        background: #e6f4ef;
+        color: #0a5646;
+        text-align: center;
+        text-decoration: none;
+        border-radius: 12px;
+        font-weight: 600;
+      }
       code {
         word-break: break-all;
         background: #f3f7f5;
-        padding: 2px 4px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.8rem;
       }
-      .step {
-        margin: 16px 0;
-        padding: 12px;
-        background: #fff;
-        border: 1px solid #d7e5df;
-        border-radius: 12px;
+      .n {
+        display: inline-block;
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+        text-align: center;
+        border-radius: 50%;
+        background: #0d6e5a;
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-right: 6px;
       }
     </style>
   </head>
   <body>
-    <h1>手机打不开新版？</h1>
-    <p>旧缓存会拦截更新。请按顺序做：</p>
+    <h1>手机更新不了？按这个做</h1>
+    <p>桌面图标里的旧缓存会劫持所有页面，所以 App 内清理常常无效。</p>
 
-    <div class="step">
-      <strong>① 先点这个清理</strong>
-      <a class="btn" href="./clear.html?t=1">清理缓存并进入新版</a>
+    <div class="card hot">
+      <p><span class="n">1</span><strong>最有效：无痕/隐私模式打开</strong></p>
+      <p>无痕模式一般<strong>不受</strong>旧 Service Worker 控制。</p>
+      <p>Chrome：右下角菜单 → <b>新的无痕式标签页</b> → 粘贴打开：</p>
+      <p><code id="home"></code></p>
+      <a class="btn" id="go" href="./">无痕里点我进入课表</a>
+      <p style="margin-top: 10px; color: #5a6f67; font-size: 0.85rem">
+        进入后看「设置 → 关于」是否为 <b>1.1.2</b>，再导入 PDF。
+      </p>
     </div>
 
-    <div class="step">
-      <strong>② 若还是旧版</strong>
-      <p>用系统浏览器打开（不要点桌面图标）：</p>
-      <p><code id="u"></code></p>
-      <p>然后：浏览器菜单 → <b>删除桌面图标 / 清除网站数据</b> → 再重新打开上面的链接。</p>
+    <div class="card">
+      <p><span class="n">2</span><strong>清掉本站数据（一劳永逸）</strong></p>
+      <p><b>Chrome：</b>地址栏左侧锁头/标识 → 网站设置 → <b>清除并重置</b></p>
+      <p><b>华为/小米浏览器：</b>设置 → 隐私 → 清除浏览数据 → 勾选缓存/网站数据</p>
+      <p>然后删掉桌面上的旧课表图标，再重新打开上面的链接并「添加到主屏幕」。</p>
+      <a class="btn2" href="./clear.html">尝试清理页</a>
     </div>
 
-    <div class="step">
-      <strong>③ 安卓 Chrome 清站点数据</strong>
-      <p>地址栏左侧锁头/网站信息 → 网站设置 → <b>清除并重置</b> / 删除数据。</p>
+    <div class="card">
+      <p><span class="n">3</span><strong>仍不行</strong></p>
+      <p>把「设置 → 关于」里显示的版本号发我；若进不去设置，说明还在旧缓存里，必须用无痕或清除网站数据。</p>
     </div>
 
     <script>
-      document.getElementById('u').textContent =
-        location.origin + location.pathname.replace(/update\.html$/i, '')
-      // 尝试就地杀掉 SW
+      var home = location.origin + location.pathname.replace(/update\.html$/i, '')
+      document.getElementById('home').textContent = home
+      document.getElementById('go').href = home + '?_v=' + Date.now() + '#/'
       ;(async function () {
         try {
           if ('serviceWorker' in navigator) {
