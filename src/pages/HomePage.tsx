@@ -48,7 +48,7 @@ export function HomePage({ data }: Props) {
         </h1>
         <p className="mt-1 text-sm text-muted">
           {data
-            ? `${data.school}${teachingWeek ? ` · 第 ${teachingWeek} 周` : ''}`
+            ? `共 ${data.courses.length} 条课次${teachingWeek ? ` · 第 ${teachingWeek} 周` : ''} · ${data.school.replace(/^四川轻化工大学\s*[·•]?\s*/, '') || data.school}`
             : '本地课表 · 零后端'}
         </p>
       </header>
