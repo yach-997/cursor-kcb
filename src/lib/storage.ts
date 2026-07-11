@@ -91,13 +91,31 @@ export function parseWeekParity(weeks: string): WeekParity {
   return 'all'
 }
 
+/** 从旧版 school 字段里拆出姓名，如「四川轻化工大学 · 陈春升」 */
+export function studentNameFromPayload(data: TimetablePayload): string {
+  const direct = data.studentName?.trim()
+  if (direct) return direct
+  const school = data.school || ''
+  const m = school.match(/[·•]\s*([\u4e00-\u9fff·]{2,8})\s*$/)
+  return m?.[1]?.trim() || ''
+}
+
 export function loadTimetable(): TimetablePayload | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const data = JSON.parse(raw) as TimetablePayload
     if (!data?.courses || !Array.isArray(data.courses)) return null
-    return data
+    const studentName = studentNameFromPayload(data) || undefined
+    return {
+      ...data,
+      school: '四川轻化工大学',
+      studentName,
+      courses: data.courses.map((c) => ({
+        ...c,
+        weekParity: c.weekParity || parseWeekParity(c.weeks || ''),
+      })),
+    }
   } catch {
     return null
   }
@@ -261,6 +279,7 @@ export function decodeImportPayload(encoded: string): TimetablePayload {
   return {
     version: 1,
     school: data.school || '四川轻化工大学',
+    studentName: data.studentName || studentNameFromPayload(data) || undefined,
     updatedAt: data.updatedAt || new Date().toISOString(),
     courses: data.courses.map((c: Course) => ({
       ...c,

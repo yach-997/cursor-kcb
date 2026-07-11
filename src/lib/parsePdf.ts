@@ -469,7 +469,20 @@ export function parseZfPdfItems(items: PdfTextItem[]): TimetablePayload {
   if (!items.length) throw new Error('PDF 里没有可读文字')
 
   const student =
-    items.find((it) => /课表$/.test(it.str))?.str.replace(/课表$/, '') || ''
+    items
+      .map((it) => it.str.trim())
+      .map((s) => {
+        const named = s.match(/^姓\s*名\s*[：:]\s*([\u4e00-\u9fff·]{2,8})$/)
+        if (named) return named[1]
+        // 「陈春升课表」一类标题
+        if (/课表$/.test(s) && s.length >= 3 && s.length <= 16) {
+          const n = s.replace(/课表$/, '').trim()
+          if (/^[\u4e00-\u9fff·]{2,8}$/.test(n)) return n
+        }
+        return ''
+      })
+      .find(Boolean) || ''
+
   const term =
     items.find((it) => /\d{4}-\d{4}学年/.test(it.str))?.str ||
     items.find((it) => /学年第/.test(it.str))?.str ||
@@ -497,7 +510,8 @@ export function parseZfPdfItems(items: PdfTextItem[]): TimetablePayload {
 
   return {
     version: 1,
-    school: student ? `四川轻化工大学 · ${student}` : '四川轻化工大学',
+    school: '四川轻化工大学',
+    studentName: student || undefined,
     updatedAt: new Date().toISOString(),
     courses: unique,
     termLabel: term || undefined,

@@ -10,6 +10,7 @@ import {
   maxWeekFromCourses,
   normalizeTermLabel,
   saveTimetable,
+  studentNameFromPayload,
   summarizeCourses,
 } from '../lib/storage'
 import type { Course, TimetablePayload } from '../types'
@@ -113,6 +114,7 @@ export function HomePage({ data, onUpdate }: Props) {
     setEditing(null)
   }
 
+  const studentName = data ? studentNameFromPayload(data) : ''
   const subtitle = (() => {
     if (!data) return '本地课表'
     const parts: string[] = []
@@ -130,7 +132,7 @@ export function HomePage({ data, onUpdate }: Props) {
       <header className="flex items-center justify-between gap-2 px-4 pt-4 pb-1">
         <div className="min-w-0">
           <h1 className="font-display text-lg font-bold tracking-tight text-ink">
-            川轻化课表助手
+            {studentName ? `${studentName}的课表` : '川轻化课表助手'}
           </h1>
           <p className="truncate text-[0.7rem] text-muted">{subtitle}</p>
         </div>

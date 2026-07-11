@@ -9,6 +9,7 @@ import {
   clearTimetable,
   normalizeTermLabel,
   saveTimetable,
+  studentNameFromPayload,
   summarizeCourses,
 } from '../lib/storage'
 import type { TimetablePayload } from '../types'
@@ -66,6 +67,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
 
   const summary =
     data && data.courses.length > 0 ? summarizeCourses(data.courses) : null
+  const studentName = data ? studentNameFromPayload(data) : ''
 
   return (
     <div className="flex-1 overflow-y-auto px-4 pb-6 pt-5 animate-fade-in">
@@ -82,6 +84,9 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
 
         {summary && data ? (
           <>
+            {studentName ? (
+              <p className="mt-2 text-base font-semibold text-ink">{studentName}</p>
+            ) : null}
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-xl bg-surface px-3 py-3 text-center">
                 <div className="text-xl font-bold tabular-nums text-ink">

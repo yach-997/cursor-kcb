@@ -27,6 +27,7 @@ function mergeKeepingManual(
   // 重新导入时：新课表的学期信息优先；仅当新数据没填时才沿用旧的
   return {
     ...incoming,
+    studentName: incoming.studentName || existing.studentName,
     termLabel: incoming.termLabel || existing.termLabel,
     termStart: incoming.termStart || existing.termStart,
     courses: [...imported, ...manuals],
