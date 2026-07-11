@@ -224,7 +224,7 @@ export function GuidePage({ onImport }: Props) {
                 {' '}登录，再进「个人课表查询」
               </p>
             </div>
-            <figure className="mx-auto mt-2 w-full overflow-hidden rounded-xl border border-line bg-surface">
+            <figure className="mx-auto mt-2 w-full max-w-full rounded-xl border border-line bg-surface p-0">
               <img
                 src={`${import.meta.env.BASE_URL}guide/01-login.png`}
                 alt="登录教务系统"
@@ -236,7 +236,7 @@ export function GuidePage({ onImport }: Props) {
               下面两种入口任选一种：
             </p>
             <div className="mx-auto mt-1.5 grid w-full gap-2">
-              <figure className="mx-auto w-full overflow-hidden rounded-xl border border-line bg-surface">
+              <figure className="mx-auto w-full max-w-full rounded-xl border border-line bg-surface">
                 <img
                   src={`${import.meta.env.BASE_URL}guide/02-xuan-ke.png`}
                   alt="选课 → 个人课表查询"
@@ -244,7 +244,7 @@ export function GuidePage({ onImport }: Props) {
                   loading="lazy"
                 />
               </figure>
-              <figure className="mx-auto w-full overflow-hidden rounded-xl border border-line bg-surface">
+              <figure className="mx-auto w-full max-w-full rounded-xl border border-line bg-surface">
                 <img
                   src={`${import.meta.env.BASE_URL}guide/03-xinxi-chaxun.png`}
                   alt="信息查询 → 个人课表查询"
@@ -262,7 +262,7 @@ export function GuidePage({ onImport }: Props) {
               </span>
               <p className="min-w-0 flex-1">点右上角「输出 PDF」，保存到手机</p>
             </div>
-            <figure className="mx-auto mt-2 w-full overflow-hidden rounded-xl border border-line bg-surface">
+            <figure className="mx-auto mt-2 w-full max-w-full rounded-xl border border-line bg-surface">
               <img
                 src={`${import.meta.env.BASE_URL}guide/04-export-pdf.png`}
                 alt="点输出PDF"
