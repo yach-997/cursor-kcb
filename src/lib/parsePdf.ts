@@ -468,20 +468,26 @@ function parseFooterExtraCourses(items: PdfTextItem[]): Course[] {
 export function parseZfPdfItems(items: PdfTextItem[]): TimetablePayload {
   if (!items.length) throw new Error('PDF 里没有可读文字')
 
-  const student =
-    items
-      .map((it) => it.str.trim())
-      .map((s) => {
-        const named = s.match(/^姓\s*名\s*[：:]\s*([\u4e00-\u9fff·]{2,8})$/)
-        if (named) return named[1]
-        // 「陈春升课表」一类标题
-        if (/课表$/.test(s) && s.length >= 3 && s.length <= 16) {
-          const n = s.replace(/课表$/, '').trim()
-          if (/^[\u4e00-\u9fff·]{2,8}$/.test(n)) return n
-        }
-        return ''
-      })
-      .find(Boolean) || ''
+  const BAD_NAME = /^(个人|学生|我的|本周|本学期|课表|同学|用户)$/
+  const fromNamed = items
+    .map((it) => it.str.trim())
+    .map((s) => {
+      const named = s.match(/^姓\s*名\s*[：:]\s*([\u4e00-\u9fff·]{2,8})$/)
+      return named?.[1]?.trim() || ''
+    })
+    .find((n) => n && !BAD_NAME.test(n))
+  const fromTitle = items
+    .map((it) => it.str.trim())
+    .map((s) => {
+      // 「陈春升课表」一类标题（排除「个人课表」等）
+      if (/课表$/.test(s) && s.length >= 3 && s.length <= 16) {
+        const n = s.replace(/课表$/, '').trim()
+        if (/^[\u4e00-\u9fff·]{2,8}$/.test(n) && !BAD_NAME.test(n)) return n
+      }
+      return ''
+    })
+    .find(Boolean)
+  const student = fromNamed || fromTitle || ''
 
   const term =
     items.find((it) => /\d{4}-\d{4}学年/.test(it.str))?.str ||
