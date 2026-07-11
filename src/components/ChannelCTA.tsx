@@ -1,11 +1,10 @@
-import { getChannelUrl } from '../lib/storage'
+const QQ_CONTACT_URL = 'https://qm.qq.com/q/iy0gyxKnrq'
 
+/** 同学有问题可点此跳转 QQ */
 export function ChannelCTA() {
-  const url = getChannelUrl()
-
   return (
     <a
-      href={url}
+      href={QQ_CONTACT_URL}
       target="_blank"
       rel="noopener noreferrer"
       className="mx-3 mb-2 flex items-center gap-3 rounded-2xl border border-brand/20 bg-gradient-to-r from-brand to-brand-dark px-4 py-3 text-white shadow-lg shadow-brand/20 active:scale-[0.99] transition animate-slide-up"

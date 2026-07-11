@@ -3,12 +3,9 @@ import { TermMetaForm } from '../components/TermMetaForm'
 import { hardRefreshApp } from '../lib/hardRefresh'
 import { buildMockPayload } from '../lib/mockData'
 import {
-  DEFAULT_CHANNEL_URL,
   clearTimetable,
-  getChannelUrl,
   normalizeTermLabel,
   saveTimetable,
-  setChannelUrl,
 } from '../lib/storage'
 import type { TimetablePayload } from '../types'
 
@@ -19,7 +16,6 @@ interface Props {
 }
 
 export function SettingsPage({ data, onImport, onClear }: Props) {
-  const [channel, setChannel] = useState(getChannelUrl)
   const [msg, setMsg] = useState<string | null>(null)
   const [editingTerm, setEditingTerm] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -34,16 +30,13 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
     flash('已载入演示课表')
   }
 
-  const handleHardRefresh = (alsoClearTimetable: boolean) => {
-    const tip = alsoClearTimetable
-      ? '将清除课表、缓存并重新加载，确定吗？'
-      : '将清理应用缓存并重新加载（课表数据保留），确定吗？'
-    if (!confirm(tip)) return
+  const handleHardRefresh = () => {
+    if (!confirm('将清理应用缓存并重新加载（课表数据保留），确定吗？')) return
     setRefreshing(true)
     setMsg('正在清理缓存…')
-    void hardRefreshApp({ clearTimetable: alsoClearTimetable }).catch(() => {
+    void hardRefreshApp({ clearTimetable: false }).catch(() => {
       setRefreshing(false)
-      setMsg('自动清理失败，请按下方说明手动清除网站数据')
+      setMsg('自动清理失败，请手动清除网站数据后再打开')
     })
   }
 
@@ -70,23 +63,15 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
           https://susuc-kcb.shipstatic.com
         </a>
         <p className="mt-2 text-[0.75rem] text-muted leading-relaxed">
-          临时调试链接会变；正式分享请用上面的固定域名。
+          若页面还是旧版，点下方清理缓存。
         </p>
         <button
           type="button"
           disabled={refreshing}
-          onClick={() => handleHardRefresh(false)}
+          onClick={handleHardRefresh}
           className="mt-3 w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
         >
           {refreshing ? '正在清理…' : '清理缓存并刷新'}
-        </button>
-        <button
-          type="button"
-          disabled={refreshing}
-          onClick={() => handleHardRefresh(true)}
-          className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink disabled:opacity-60"
-        >
-          清理缓存 + 清除课表并刷新
         </button>
       </section>
 
@@ -164,29 +149,6 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         </div>
       </section>
 
-      <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
-        <h2 className="font-semibold text-ink">联系方式（QQ）</h2>
-        <p className="mt-1 text-sm text-muted">
-          同学使用有问题可点底部按钮联系；也可在此修改跳转链接。
-        </p>
-        <input
-          value={channel}
-          onChange={(e) => setChannel(e.target.value)}
-          className="mt-3 w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm outline-none focus:border-brand"
-          placeholder={DEFAULT_CHANNEL_URL}
-        />
-        <button
-          type="button"
-          onClick={() => {
-            setChannelUrl(channel.trim() || DEFAULT_CHANNEL_URL)
-            flash('联系链接已保存')
-          }}
-          className="mt-2 w-full rounded-xl bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark"
-        >
-          保存链接
-        </button>
-      </section>
-
       <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm text-sm text-muted leading-relaxed">
         <h2 className="font-semibold text-ink">关于</h2>
         <p className="mt-2">四川轻化工大学课表助手</p>
@@ -201,7 +163,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
             https://jwgl.suse.edu.cn
           </a>
         </p>
-        <p className="mt-1">版本 1.3.1</p>
+        <p className="mt-1">版本 1.3.2</p>
         <p className="mt-2 break-all text-xs text-muted">
           https://susuc-kcb.shipstatic.com
         </p>
