@@ -1,5 +1,6 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { BottomNav } from './components/BottomNav'
+import { UpdateBanner } from './components/UpdateBanner'
 import { useTimetable } from './hooks/useTimetable'
 import { clearTimetable } from './lib/storage'
 import { GuidePage } from './pages/GuidePage'
@@ -13,6 +14,7 @@ export default function App() {
   return (
     <HashRouter>
       <div className="app-shell">
+        <UpdateBanner />
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <Routes>
             <Route path="/" element={<HomePage data={data} onUpdate={setData} />} />

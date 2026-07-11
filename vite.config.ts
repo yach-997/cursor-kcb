@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { defineConfig } from 'vite'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -10,12 +10,34 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf-8')) as {
   version: string
 }
 
+/** 构建时写出 version.json，供客户端检测升级 */
+function emitVersionJson(): Plugin {
+  const write = () => {
+    const body = JSON.stringify(
+      { version: pkg.version, builtAt: Date.now() },
+      null,
+      2,
+    )
+    writeFileSync('./public/version.json', `${body}\n`)
+  }
+  return {
+    name: 'emit-version-json',
+    buildStart() {
+      write()
+    },
+    configureServer() {
+      write()
+    },
+  }
+}
+
 export default defineConfig({
   base,
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   plugins: [
+    emitVersionJson(),
     react(),
     tailwindcss(),
     VitePWA({
@@ -23,7 +45,12 @@ export default defineConfig({
       // 暂时不注入 registerSW；由 main.tsx 主动注销，避免再锁死旧缓存
       injectRegister: null,
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'clear.html'],
+      includeAssets: [
+        'favicon.svg',
+        'apple-touch-icon.png',
+        'clear.html',
+        'version.json',
+      ],
       manifest: {
         name: '川轻化课表助手',
         short_name: '课表助手',
@@ -55,7 +82,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,mjs,bcmap}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,mjs,bcmap,json}'],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
