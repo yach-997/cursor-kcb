@@ -77,7 +77,7 @@ export function TodayView({
         <div className="rounded-2xl border border-dashed border-line bg-white/70 px-4 py-8 text-center">
           <p className="text-sm font-medium text-ink">本学期课表周次已过完</p>
           <p className="mt-1 text-xs text-muted leading-relaxed">
-            「今日」不再按日期推算。可切到「本周」浏览各周课表，或在设置里改第一周日期。
+            「今日」不再按日期推算。可切到「周课表」浏览各周，或在设置里改第一周日期。
           </p>
           {onShowWeek && (
             <button
@@ -85,7 +85,7 @@ export function TodayView({
               onClick={onShowWeek}
               className="mt-4 rounded-xl bg-brand-soft px-4 py-2.5 text-sm font-semibold text-brand-dark"
             >
-              去看本周课表
+              去看周课表
             </button>
           )}
         </div>

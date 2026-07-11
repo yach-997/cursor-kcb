@@ -4,6 +4,7 @@ import { AddCourseSheet } from '../components/AddCourseSheet'
 import { TermMetaForm } from '../components/TermMetaForm'
 import { TodayView } from '../components/TodayView'
 import { WeekView } from '../components/WeekView'
+import { buildMockPayload } from '../lib/mockData'
 import {
   currentTeachingWeek,
   isBeforeTermStart,
@@ -17,9 +18,10 @@ import type { Course, TimetablePayload } from '../types'
 interface Props {
   data: TimetablePayload | null
   onUpdate?: (payload: TimetablePayload) => void
+  onImport?: (payload: TimetablePayload) => void
 }
 
-export function HomePage({ data, onUpdate }: Props) {
+export function HomePage({ data, onUpdate, onImport }: Props) {
   const navigate = useNavigate()
   const needTermMeta = !!(data && data.courses.length > 0 && !data.termStart)
   const beforeTerm = !!(data?.termStart && isBeforeTermStart(data.termStart))
@@ -28,8 +30,13 @@ export function HomePage({ data, onUpdate }: Props) {
     const max = maxWeekFromCourses(data.courses)
     return currentTeachingWeek(data.termStart, Math.max(max, 1))
   }, [data])
-  /** 本周视图：未开学时默认预览第 1 周 */
-  const weekViewWeek = teachingWeek ?? (beforeTerm ? 1 : null)
+  /** 周课表默认周：当前教学周；未开学看第 1 周；已结课看最后一周 */
+  const weekViewWeek = useMemo(() => {
+    if (teachingWeek != null) return teachingWeek
+    if (!data) return 1
+    const max = Math.max(maxWeekFromCourses(data.courses), 1)
+    return beforeTerm ? 1 : max
+  }, [teachingWeek, beforeTerm, data])
   const [tab, setTab] = useState<'today' | 'week'>('today')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editing, setEditing] = useState<Course | null>(null)
@@ -181,7 +188,7 @@ export function HomePage({ data, onUpdate }: Props) {
                 tab === 'week' ? 'bg-brand text-white' : 'text-muted'
               }`}
             >
-              本周
+              周课表
             </button>
           </div>
 
@@ -273,7 +280,7 @@ export function HomePage({ data, onUpdate }: Props) {
           <button
             type="button"
             className="mt-3 text-sm font-medium text-brand"
-            onClick={() => navigate('/guide')}
+            onClick={() => onImport?.(buildMockPayload(0))}
           >
             或先看演示课表
           </button>

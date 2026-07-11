@@ -20,7 +20,7 @@ export default defineConfig({
       manifest: {
         name: '川轻化课表助手',
         short_name: '课表助手',
-        description: '四川轻化工大学课表助手 · 本地存储 · 零后端',
+        description: '四川轻化工大学课表助手 · 本地课表',
         theme_color: '#0d6e5a',
         background_color: '#f3f7f5',
         display: 'standalone',
