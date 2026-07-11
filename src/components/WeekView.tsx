@@ -7,7 +7,6 @@ import {
   maxSection,
   maxWeekFromCourses,
   mondayOfWeek,
-  todayWeekday,
   weekMatches,
 } from '../lib/storage'
 
@@ -36,7 +35,10 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
   }, [suggestedWeek, maxWeek])
 
   const [viewWeek, setViewWeek] = useState(defaultWeek)
-  const today = todayWeekday()
+  const todayKey = useMemo(() => {
+    const n = new Date()
+    return `${n.getFullYear()}-${n.getMonth() + 1}-${n.getDate()}`
+  }, [])
 
   useEffect(() => {
     setViewWeek(defaultWeek)
@@ -55,7 +57,7 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
     [courses, viewWeek],
   )
 
-  const dateLabels = useMemo(() => {
+  const dayDates = useMemo(() => {
     const monday = termStart
       ? mondayOfWeek(termStart, viewWeek)
       : (() => {
@@ -68,19 +70,39 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
           }
           return d
         })()
-    if (!monday) return Array.from({ length: 7 }, () => '')
+    if (!monday) return Array.from({ length: 7 }, () => null as Date | null)
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday)
       d.setDate(monday.getDate() + i)
-      return `${d.getMonth() + 1}/${d.getDate()}`
+      return d
     })
   }, [viewWeek, suggestedWeek, termStart])
+
+  const dateLabels = useMemo(
+    () =>
+      dayDates.map((d) =>
+        d ? `${d.getMonth() + 1}/${d.getDate()}` : '',
+      ),
+    [dayDates],
+  )
+
+  const isTodayCol = (i: number) => {
+    const d = dayDates[i]
+    return !!(
+      d &&
+      `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}` === todayKey
+    )
+  }
 
   const lastRow = periodCount > 0 ? sectionRow(periodCount) : 1
   const lunchRow = 6
   const showLunch = periodCount > 4
   const sections = Array.from({ length: periodCount }, (_, i) => i + 1)
-  const isCurrentWeek = suggestedWeek != null && viewWeek === suggestedWeek
+  const viewingRealToday = dayDates.some(
+    (d) =>
+      d &&
+      `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}` === todayKey,
+  )
 
   if (periodCount === 0) {
     return (
@@ -131,7 +153,7 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
 
           {WEEKDAY_LABELS.map((label, i) => {
             const day = i + 1
-            const isToday = isCurrentWeek && day === today
+            const isToday = isTodayCol(i)
             return (
               <div
                 key={day}
@@ -166,7 +188,7 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
                 <div
                   key={`lunch-${i}`}
                   className={`border-b border-line/40 bg-amber-50/50 ${
-                    isCurrentWeek && i + 1 === today ? 'bg-brand-soft/30' : ''
+                    isTodayCol(i) ? 'bg-brand-soft/30' : ''
                   }`}
                   style={{ gridColumn: i + 2, gridRow: lunchRow }}
                 />
@@ -192,7 +214,7 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
                   <div
                     key={`bg-${sec}-${i}`}
                     className={`border-b border-r border-line/35 bg-white/20 ${
-                      isCurrentWeek && i + 1 === today ? 'bg-brand-soft/25' : ''
+                      isTodayCol(i) ? 'bg-brand-soft/25' : ''
                     }`}
                     style={{ gridColumn: i + 2, gridRow: row }}
                   />
@@ -254,7 +276,7 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
 
         <p className="mt-2 text-center text-[0.65rem] text-muted">
           第 {viewWeek} 周
-          {isCurrentWeek ? '（本周）' : ''} · 点上方周数可切换
+          {viewingRealToday ? '（含今天）' : ''} · 点上方周数可切换
         </p>
       </div>
     </div>
