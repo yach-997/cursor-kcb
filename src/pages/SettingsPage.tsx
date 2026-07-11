@@ -190,8 +190,18 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
       <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm text-sm text-muted leading-relaxed">
         <h2 className="font-semibold text-ink">关于</h2>
         <p className="mt-2">四川轻化工大学课表助手 · 纯前端 PWA</p>
-        <p className="mt-1">正方教务：61.139.105.138</p>
-        <p className="mt-1">版本 1.2.3</p>
+        <p className="mt-1">
+          正方教务：{' '}
+          <a
+            className="break-all text-brand underline"
+            href="https://jwgl.suse.edu.cn/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            https://jwgl.suse.edu.cn/
+          </a>
+        </p>
+        <p className="mt-1">版本 1.2.4</p>
         <p className="mt-2 break-all text-xs text-muted">
           https://susuc-kcb.shipstatic.com/
         </p>

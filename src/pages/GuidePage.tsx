@@ -187,29 +187,102 @@ export function GuidePage({ onImport }: Props) {
       <section className="mt-5 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
         <div className="text-xs font-semibold text-brand">上传 PDF</div>
         <h2 className="mt-1 font-semibold text-ink">导入教务课表文件</h2>
+        <p className="mt-1 text-[0.75rem] text-muted leading-relaxed">
+          按下面 3 步做即可，对照截图点哪里。
+        </p>
 
-        <ol className="mt-3 space-y-2 text-sm text-muted leading-relaxed">
-          <li className="flex gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[0.7rem] font-bold text-white">
-              1
-            </span>
-            <span>
-              打开教务{' '}
-              <span className="font-mono text-[0.7rem] text-ink">61.139.105.138</span>
-              ，登录后进入课表
-            </span>
+        <ol className="mt-4 space-y-5 text-sm text-ink leading-relaxed">
+          <li>
+            <div className="flex gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[0.7rem] font-bold text-white">
+                1
+              </span>
+              <div className="min-w-0 flex-1">
+                <p>
+                  打开教务系统{' '}
+                  <a
+                    className="break-all font-medium text-brand underline"
+                    href="https://jwgl.suse.edu.cn/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    https://jwgl.suse.edu.cn/
+                  </a>
+                  ，登录后点左上角「选课」或「信息查询」，再点「个人课表查询」
+                </p>
+                <figure className="mt-2 overflow-hidden rounded-xl border border-line bg-surface">
+                  <img
+                    src={`${import.meta.env.BASE_URL}guide/01-login.png`}
+                    alt="教务系统登录页"
+                    className="w-full"
+                    loading="lazy"
+                  />
+                  <figcaption className="border-t border-line px-2.5 py-1.5 text-[0.7rem] text-muted">
+                    ① 打开链接 → 输入账号密码 → 点「登录」
+                  </figcaption>
+                </figure>
+                <p className="mt-2 text-[0.75rem] font-medium text-muted">
+                  登录后两种入口任选其一（都进「个人课表查询」）：
+                </p>
+                <div className="mt-1.5 grid gap-2">
+                  <figure className="overflow-hidden rounded-xl border border-line bg-surface">
+                    <img
+                      src={`${import.meta.env.BASE_URL}guide/02-xuan-ke.png`}
+                      alt="选课菜单里点个人课表查询"
+                      className="w-full"
+                      loading="lazy"
+                    />
+                    <figcaption className="border-t border-line px-2.5 py-1.5 text-[0.7rem] text-muted">
+                      入口 A：顶栏「选课」→「个人课表查询」
+                    </figcaption>
+                  </figure>
+                  <figure className="overflow-hidden rounded-xl border border-line bg-surface">
+                    <img
+                      src={`${import.meta.env.BASE_URL}guide/03-xinxi-chaxun.png`}
+                      alt="信息查询菜单里点个人课表查询"
+                      className="w-full"
+                      loading="lazy"
+                    />
+                    <figcaption className="border-t border-line px-2.5 py-1.5 text-[0.7rem] text-muted">
+                      入口 B：顶栏「信息查询」→「个人课表查询」
+                    </figcaption>
+                  </figure>
+                </div>
+              </div>
+            </div>
           </li>
-          <li className="flex gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[0.7rem] font-bold text-white">
-              2
-            </span>
-            <span>点「打印」或「导出 PDF」，保存到手机</span>
+
+          <li>
+            <div className="flex gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[0.7rem] font-bold text-white">
+                2
+              </span>
+              <div className="min-w-0 flex-1">
+                <p>再点右上角「输出 PDF」，保存到手机</p>
+                <figure className="mt-2 overflow-hidden rounded-xl border border-line bg-surface">
+                  <img
+                    src={`${import.meta.env.BASE_URL}guide/04-export-pdf.png`}
+                    alt="课表页右上角输出PDF按钮"
+                    className="w-full"
+                    loading="lazy"
+                  />
+                  <figcaption className="border-t border-line px-2.5 py-1.5 text-[0.7rem] text-muted">
+                    ② 课表页右上角点「输出 PDF」（在「表格 / 列表」旁边）→ 保存到手机
+                  </figcaption>
+                </figure>
+              </div>
+            </div>
           </li>
-          <li className="flex gap-2">
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[0.7rem] font-bold text-white">
-              3
-            </span>
-            <span>点下方按钮选择该 PDF（直接选中即可，无需先预览）</span>
+
+          <li>
+            <div className="flex gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[0.7rem] font-bold text-white">
+                3
+              </span>
+              <p className="min-w-0 flex-1">
+                点下方「选择课表 PDF」按钮，上传刚刚下载好的 PDF 文件即可
+              </p>
+            </div>
           </li>
         </ol>
 
