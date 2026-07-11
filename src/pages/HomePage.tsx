@@ -17,10 +17,9 @@ import type { Course, TimetablePayload } from '../types'
 interface Props {
   data: TimetablePayload | null
   onUpdate?: (payload: TimetablePayload) => void
-  onImport?: (payload: TimetablePayload) => void
 }
 
-export function HomePage({ data, onUpdate, onImport }: Props) {
+export function HomePage({ data, onUpdate }: Props) {
   const navigate = useNavigate()
   const needTermMeta = !!(data && data.courses.length > 0 && !data.termStart)
   const beforeTerm = !!(data?.termStart && isBeforeTermStart(data.termStart))
