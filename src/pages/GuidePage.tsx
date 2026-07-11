@@ -5,11 +5,10 @@ import {
   base64ToArrayBuffer,
   clearImportDraft,
   fileToBase64,
-  isAndroid,
+  inAppBrowserKind,
   isInAppBrowser,
   loadImportDraft,
   looksLikePdf,
-  openInExternalBrowser,
   publicAppUrl,
   readBlobBuffer,
   saveImportDraft,
@@ -35,34 +34,19 @@ export function GuidePage({ onImport }: Props) {
   const [fileName, setFileName] = useState<string | null>(null)
   const [pending, setPending] = useState<TimetablePayload | null>(null)
   const [inApp] = useState(() => isInAppBrowser())
-  const [android] = useState(() => isAndroid())
+  const [appKind] = useState(() => inAppBrowserKind())
   const [copied, setCopied] = useState(false)
 
-  const guideUrl = () => publicAppUrl('#/guide')
-
   const copySiteLink = async () => {
-    const url = guideUrl()
+    const url = publicAppUrl()
     try {
       await navigator.clipboard.writeText(url)
     } catch {
-      window.prompt('复制链接后，到手机浏览器打开：', url)
+      window.prompt('复制下面的链接，到手机浏览器打开：', url)
       return
     }
     setCopied(true)
     window.setTimeout(() => setCopied(false), 2000)
-  }
-
-  /** 安卓微信/QQ：跳系统浏览器；否则复制链接 */
-  const leaveInAppBrowser = () => {
-    const url = guideUrl()
-    if (openInExternalBrowser(url)) return
-    void copySiteLink()
-  }
-
-  const openJwgl = (e: { preventDefault: () => void }) => {
-    if (!inApp || !android) return
-    e.preventDefault()
-    openInExternalBrowser('https://jwgl.suse.edu.cn')
   }
 
   const finishImport = (payload: TimetablePayload, tip: string) => {
@@ -235,7 +219,6 @@ export function GuidePage({ onImport }: Props) {
                     href="https://jwgl.suse.edu.cn"
                     target="_blank"
                     rel="noreferrer"
-                    onClick={openJwgl}
                   >
                     https://jwgl.suse.edu.cn
                   </a>
@@ -315,35 +298,15 @@ export function GuidePage({ onImport }: Props) {
           }}
         />
 
-        {inApp && android ? (
-          <button
-            type="button"
-            onClick={leaveInAppBrowser}
-            className="mt-4 flex w-full cursor-pointer items-center justify-center rounded-xl bg-brand px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-brand/20 active:scale-[0.99] transition"
-          >
-            用手机浏览器打开后再导入
-          </button>
-        ) : (
-          <label
-            htmlFor="timetable-pdf-input"
-            aria-disabled={busy}
-            className={`mt-4 flex w-full cursor-pointer items-center justify-center rounded-xl bg-brand px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-brand/20 active:scale-[0.99] transition ${
-              busy ? 'pointer-events-none opacity-60' : ''
-            }`}
-          >
-            {busy ? '正在识别…最多约 45 秒' : '选择课表 PDF'}
-          </label>
-        )}
-
-        {inApp && !android && (
-          <button
-            type="button"
-            onClick={() => void copySiteLink()}
-            className="mt-2 w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm font-medium text-ink"
-          >
-            {copied ? '已复制，请到 Safari 打开' : '复制链接，用 Safari 打开后再导入'}
-          </button>
-        )}
+        <label
+          htmlFor="timetable-pdf-input"
+          aria-disabled={busy}
+          className={`mt-4 flex w-full cursor-pointer items-center justify-center rounded-xl bg-brand px-4 py-3.5 text-sm font-semibold text-white shadow-md shadow-brand/20 active:scale-[0.99] transition ${
+            busy ? 'pointer-events-none opacity-60' : ''
+          }`}
+        >
+          {busy ? '正在识别…最多约 45 秒' : '选择课表 PDF'}
+        </label>
 
         {busy && (
           <p className="mt-2 text-center text-[0.75rem] text-muted">
@@ -362,17 +325,25 @@ export function GuidePage({ onImport }: Props) {
           <div className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-expired leading-relaxed">
             <p>{error}</p>
             {inApp && (
-              <button
-                type="button"
-                onClick={leaveInAppBrowser}
-                className="mt-2 w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-brand-dark"
-              >
-                {android
-                  ? '用手机浏览器打开后再试'
-                  : copied
-                    ? '已复制链接'
-                    : '复制链接，用 Safari 打开后再试'}
-              </button>
+              <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-ink">
+                <p className="text-[0.8rem] font-semibold">
+                  当前是在
+                  {appKind === 'wechat' ? '微信' : appKind === 'qq' ? 'QQ' : '内置浏览器'}
+                  里打开，部分机型会导入失败
+                </p>
+                <p className="mt-1 text-[0.75rem] text-muted">
+                  可改用手机浏览器：右上角 ··· →「
+                  {appKind === 'qq' ? '用浏览器打开' : '在浏览器打开'}
+                  」，或先复制链接再粘贴打开。
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void copySiteLink()}
+                  className="mt-2 w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-brand-dark"
+                >
+                  {copied ? '已复制链接' : '复制本站链接'}
+                </button>
+              </div>
             )}
             <button
               type="button"
@@ -400,6 +371,24 @@ export function GuidePage({ onImport }: Props) {
         >
           先看演示课表（不用上传）
         </button>
+
+        {inApp && !error && (
+          <p className="mt-3 text-center text-[0.7rem] leading-relaxed text-muted">
+            当前是在
+            {appKind === 'wechat' ? '微信' : appKind === 'qq' ? 'QQ' : '内置浏览器'}
+            里打开。若导入失败，可点右上角 ··· →「
+            {appKind === 'qq' ? '用浏览器打开' : '在浏览器打开'}
+            」，或
+            <button
+              type="button"
+              onClick={() => void copySiteLink()}
+              className="mx-0.5 font-medium text-brand underline"
+            >
+              {copied ? '已复制链接' : '复制本站链接'}
+            </button>
+            到手机浏览器打开。
+          </p>
+        )}
       </section>
     </div>
   )

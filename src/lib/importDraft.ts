@@ -168,43 +168,8 @@ export function inAppBrowserKind(): 'wechat' | 'qq' | null {
 }
 
 /** 给同学复制到手机浏览器打开的干净地址 */
-export function publicAppUrl(hashPath = ''): string {
+export function publicAppUrl(): string {
   const { origin, pathname } = window.location
   const base = pathname.replace(/\/index\.html$/i, '/').replace(/\/?$/, '/')
-  const hash = hashPath
-    ? hashPath.startsWith('#')
-      ? hashPath
-      : `#${hashPath.startsWith('/') ? '' : '/'}${hashPath}`
-    : ''
-  return `${origin}${base}${hash}`
-}
-
-export function isAndroid(): boolean {
-  return /Android/i.test(navigator.userAgent || '')
-}
-
-/**
- * 安卓微信/QQ 内：用 Intent 跳到系统浏览器。
- * 下载的 PDF 才会进手机「文件」，上传才能选到。
- * 返回是否已走 Intent（调用方勿再 window.open）。
- */
-export function openInExternalBrowser(url: string): boolean {
-  const ua = navigator.userAgent || ''
-  const inApp = /MicroMessenger|QQ\//i.test(ua) && !/QQBrowser/i.test(ua)
-  if (!inApp || !/Android/i.test(ua)) return false
-
-  try {
-    const u = new URL(url, window.location.href)
-    const hostAndRest = `${u.host}${u.pathname}${u.search}${u.hash}`
-    const scheme = u.protocol.replace(':', '') || 'https'
-    // 不指定 package，让系统弹出浏览器选择（Chrome / 系统浏览器等）
-    const intent =
-      `intent://${hostAndRest}` +
-      `#Intent;scheme=${scheme};action=android.intent.action.VIEW;` +
-      `category=android.intent.category.BROWSABLE;end`
-    window.location.href = intent
-    return true
-  } catch {
-    return false
-  }
+  return `${origin}${base}`
 }
