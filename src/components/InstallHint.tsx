@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 
-const HIDE_KEY = 'susuc-hide-install-hint'
+/** 永久不再提示 */
+const HIDE_FOREVER_KEY = 'susuc-hide-install-hint-forever'
+/** 本次访问先藏起来（知道了 / ×） */
+const HIDE_SESSION_KEY = 'susuc-hide-install-hint-session'
+/** 旧版永久键：升级后清掉，让同学能再看到一次 */
+const LEGACY_HIDE_KEY = 'susuc-hide-install-hint'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -56,7 +61,12 @@ export function InstallHint() {
 
   useEffect(() => {
     try {
-      if (localStorage.getItem(HIDE_KEY) === '1') return
+      // 兼容：以前「知道了」会永久隐藏，清掉旧标记让提示重新出现
+      if (localStorage.getItem(LEGACY_HIDE_KEY) === '1') {
+        localStorage.removeItem(LEGACY_HIDE_KEY)
+      }
+      if (localStorage.getItem(HIDE_FOREVER_KEY) === '1') return
+      if (sessionStorage.getItem(HIDE_SESSION_KEY) === '1') return
     } catch {
       /* ignore */
     }
@@ -73,9 +83,19 @@ export function InstallHint() {
 
   if (!visible) return null
 
-  const dismiss = () => {
+  const dismissSession = () => {
     try {
-      localStorage.setItem(HIDE_KEY, '1')
+      sessionStorage.setItem(HIDE_SESSION_KEY, '1')
+    } catch {
+      /* ignore */
+    }
+    setVisible(false)
+  }
+
+  const dismissForever = () => {
+    try {
+      localStorage.setItem(HIDE_FOREVER_KEY, '1')
+      sessionStorage.removeItem(HIDE_SESSION_KEY)
     } catch {
       /* ignore */
     }
@@ -87,9 +107,10 @@ export function InstallHint() {
     setBusy(true)
     try {
       await deferred.prompt()
-      await deferred.userChoice
+      const choice = await deferred.userChoice
       setDeferred(null)
-      dismiss()
+      if (choice.outcome === 'accepted') dismissForever()
+      else dismissSession()
     } catch {
       /* ignore */
     } finally {
@@ -109,7 +130,7 @@ export function InstallHint() {
         <button
           type="button"
           aria-label="关闭"
-          onClick={dismiss}
+          onClick={dismissSession}
           className="shrink-0 rounded-lg px-2 py-1 text-sm text-muted"
         >
           ×
@@ -128,7 +149,7 @@ export function InstallHint() {
         )}
         <button
           type="button"
-          onClick={dismiss}
+          onClick={dismissSession}
           className={`rounded-xl border border-line bg-white px-3 py-2 text-sm font-medium text-ink ${
             hint.canPrompt && deferred ? '' : 'flex-1'
           }`}
@@ -136,6 +157,13 @@ export function InstallHint() {
           知道了
         </button>
       </div>
+      <button
+        type="button"
+        onClick={dismissForever}
+        className="mt-1.5 w-full py-1 text-center text-[0.7rem] text-muted underline-offset-2 hover:underline"
+      >
+        不再提示
+      </button>
     </div>
   )
 }
