@@ -51,6 +51,72 @@
         color: #5a6f67;
         font-size: 0.95rem;
       }
+      /* 微信/QQ 内：引导到手机浏览器 */
+      #ext-open {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background: rgba(10, 20, 16, 0.88);
+        color: #fff;
+        box-sizing: border-box;
+        padding: 24px 20px;
+        font-family: inherit;
+      }
+      #ext-open.show {
+        display: flex;
+        flex-direction: column;
+      }
+      #ext-open .arrow {
+        align-self: flex-end;
+        margin: 4px 8px 0 0;
+        font-size: 2.4rem;
+        line-height: 1;
+        color: #7dffa8;
+      }
+      #ext-open .card {
+        margin-top: 12px;
+        border-radius: 16px;
+        background: #fff;
+        color: #14231e;
+        padding: 20px 18px;
+      }
+      #ext-open h1 {
+        margin: 0;
+        font-size: 1.15rem;
+      }
+      #ext-open p {
+        margin: 10px 0 0;
+        font-size: 0.9rem;
+        line-height: 1.55;
+        color: #5a6f67;
+      }
+      #ext-open .btn {
+        display: block;
+        width: 100%;
+        margin-top: 16px;
+        border: 0;
+        border-radius: 12px;
+        background: #0d6e5a;
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 700;
+        padding: 14px 16px;
+        cursor: pointer;
+      }
+      #ext-open .btn2 {
+        display: block;
+        width: 100%;
+        margin-top: 10px;
+        border: 1px solid #d5e3dc;
+        border-radius: 12px;
+        background: #f3f7f5;
+        color: #14231e;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 12px 16px;
+        cursor: pointer;
+      }
     </style>
     <script>
       /* 尽早杀掉 Service Worker（仅当浏览器真正加载到这份 HTML 时生效） */
@@ -72,9 +138,157 @@
           }
         } catch (e) {}
       })()
+
+      /**
+       * 微信/QQ 内打开时：安卓尽量跳到手机浏览器（下载 PDF 才能选到）。
+       * iOS 无法自动跳 Safari，只能引导点右上角。
+       */
+      ;(function () {
+        var ua = navigator.userAgent || ''
+        var inApp =
+          /MicroMessenger|QQ\//i.test(ua) && !/QQBrowser/i.test(ua)
+        if (!inApp) return
+
+        var android = /Android/i.test(ua)
+        var ios = /iPhone|iPad|iPod/i.test(ua)
+
+        function currentUrl() {
+          return location.href
+        }
+
+        function intentUrl(url) {
+          try {
+            var u = new URL(url)
+            var rest = u.host + u.pathname + u.search + u.hash
+            var scheme = (u.protocol || 'https:').replace(':', '') || 'https'
+            return (
+              'intent://' +
+              rest +
+              '#Intent;scheme=' +
+              scheme +
+              ';action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=' +
+              encodeURIComponent(url) +
+              ';end'
+            )
+          } catch (e) {
+            return url
+          }
+        }
+
+        function jumpAndroid() {
+          location.href = intentUrl(currentUrl())
+        }
+
+        function whenReady(fn) {
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', fn)
+          } else {
+            fn()
+          }
+        }
+
+        function showOverlay() {
+          whenReady(function () {
+            var el = document.getElementById('ext-open')
+            if (!el) return
+            el.className = 'show'
+            var title = document.getElementById('ext-title')
+            var desc = document.getElementById('ext-desc')
+            var btn = document.getElementById('ext-btn')
+            var btn2 = document.getElementById('ext-btn2')
+            var arrow = document.getElementById('ext-arrow')
+            if (android) {
+              if (arrow) arrow.style.display = 'none'
+              if (title) title.textContent = '请用手机浏览器打开'
+              if (desc)
+                desc.textContent =
+                  '微信/QQ 里下载的课表 PDF 选不到。点下面按钮，用手机浏览器打开本站后再导入。'
+              if (btn) {
+                btn.textContent = '用手机浏览器打开'
+                btn.onclick = function () {
+                  jumpAndroid()
+                }
+              }
+              if (btn2) btn2.style.display = 'none'
+            } else if (ios) {
+              if (arrow) arrow.style.display = 'block'
+              if (title) title.textContent = '请在浏览器打开'
+              if (desc)
+                desc.textContent =
+                  '点右上角 ··· ，再选「在 Safari 中打开」或「在浏览器打开」。'
+              if (btn) {
+                btn.textContent = '复制链接'
+                btn.onclick = function () {
+                  var url = currentUrl()
+                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(
+                      function () {
+                        btn.textContent = '已复制，请到 Safari 粘贴打开'
+                      },
+                      function () {
+                        window.prompt('复制链接到 Safari 打开：', url)
+                      },
+                    )
+                  } else {
+                    window.prompt('复制链接到 Safari 打开：', url)
+                  }
+                }
+              }
+              if (btn2) {
+                btn2.style.display = 'block'
+                btn2.onclick = function () {
+                  el.className = ''
+                }
+              }
+            } else {
+              if (arrow) arrow.style.display = 'none'
+              if (title) title.textContent = '请用手机浏览器打开'
+              if (desc)
+                desc.textContent =
+                  '点右上角 ··· →「在浏览器打开」，或复制链接到手机浏览器。'
+              if (btn) {
+                btn.textContent = '复制链接'
+                btn.onclick = function () {
+                  window.prompt('复制链接到手机浏览器打开：', currentUrl())
+                }
+              }
+              if (btn2) {
+                btn2.style.display = 'block'
+                btn2.onclick = function () {
+                  el.className = ''
+                }
+              }
+            }
+          })
+        }
+
+        // 安卓：先自动尝试跳系统浏览器；若仍留在微信内再显示按钮
+        if (android) {
+          try {
+            if (!sessionStorage.getItem('susuc_intent_once')) {
+              sessionStorage.setItem('susuc_intent_once', '1')
+              jumpAndroid()
+            }
+          } catch (e) {
+            jumpAndroid()
+          }
+          setTimeout(showOverlay, 600)
+        } else {
+          showOverlay()
+        }
+      })()
     </script>
   </head>
   <body>
+    <div id="ext-open" aria-hidden="true">
+      <div id="ext-arrow" class="arrow">↗</div>
+      <div class="card">
+        <h1 id="ext-title">请用手机浏览器打开</h1>
+        <p id="ext-desc"></p>
+        <button type="button" class="btn" id="ext-btn">用手机浏览器打开</button>
+        <button type="button" class="btn2" id="ext-btn2">仍在这里继续</button>
+      </div>
+    </div>
     <div id="root">
       <div id="boot">
         <div class="logo">课</div>
