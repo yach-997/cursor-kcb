@@ -1,26 +1,32 @@
-const QQ_CONTACT_URL = 'https://qm.qq.com/q/iy0gyxKnrq'
+const QQ_PERSONAL = 'https://qm.qq.com/q/iy0gyxKnrq'
+const QQ_GROUP = 'https://qm.qq.com/q/ZwGz3jrQis'
 
-/** 同学有问题可点此跳转 QQ */
+/** 紧凑双入口：个人 QQ / 维护群 */
 export function ChannelCTA() {
   return (
-    <a
-      href={QQ_CONTACT_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mx-3 mb-2 flex items-center gap-3 rounded-2xl border border-brand/20 bg-gradient-to-r from-brand to-brand-dark px-4 py-3 text-white shadow-lg shadow-brand/20 active:scale-[0.99] transition animate-slide-up"
-    >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-lg font-display font-bold">
-        QQ
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold leading-tight">使用有问题？点这里联系</div>
-        <div className="mt-0.5 text-[0.7rem] text-white/80 truncate">
-          跳转 QQ，不懂就问
-        </div>
-      </div>
-      <span className="text-white/90 text-lg" aria-hidden>
-        →
-      </span>
-    </a>
+    <div className="mx-3 mb-2 grid grid-cols-2 gap-2 animate-slide-up">
+      <a
+        href={QQ_PERSONAL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-1.5 rounded-xl border border-brand/25 bg-white/90 px-3 py-2.5 text-sm font-semibold text-brand-dark shadow-sm active:scale-[0.98] transition"
+      >
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-brand text-[0.65rem] font-bold text-white">
+          QQ
+        </span>
+        QQ维护
+      </a>
+      <a
+        href={QQ_GROUP}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-1.5 rounded-xl border border-brand/25 bg-brand px-3 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand/15 active:scale-[0.98] transition"
+      >
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-white/20 text-[0.65rem] font-bold">
+          群
+        </span>
+        QQ维护群
+      </a>
+    </div>
   )
 }
