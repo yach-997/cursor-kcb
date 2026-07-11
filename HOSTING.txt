@@ -1,5 +1,5 @@
 # 同学只需收藏这一个（已绑定，永久有效、自动更新）
-https://susuc-kcb.shipstatic.com/
+https://susuc-kcb.shipstatic.com
 
 # GitHub Actions 自动部署需要 Secret：
 # 1. 打开 https://github.com/yach-997/susuc-kcb/settings/secrets/actions

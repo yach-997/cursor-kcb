@@ -175,7 +175,7 @@ export function GuidePage({ onImport }: Props) {
     <div className="flex-1 overflow-y-auto px-4 pb-6 pt-5 animate-fade-in">
       <h1 className="font-display text-2xl font-bold text-ink">导入课表</h1>
       <p className="mt-1 text-sm text-muted leading-relaxed">
-        上传教务导出的课表 PDF（表格式 / 列表式均可）。识别后请填写学期与第一周日期。
+        上传教务导出的课表 PDF文件（表格式 / 列表式均可）。识别后请填写学期与第一周日期。
       </p>
 
       {inApp && (

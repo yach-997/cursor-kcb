@@ -65,9 +65,9 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         </p>
         <a
           className="mt-2 block break-all rounded-xl bg-white px-3 py-2 text-sm font-medium text-brand underline border border-brand/20"
-          href="https://susuc-kcb.shipstatic.com/"
+          href="https://susuc-kcb.shipstatic.com"
         >
-          https://susuc-kcb.shipstatic.com/
+          https://susuc-kcb.shipstatic.com
         </a>
         <p className="mt-2 text-[0.75rem] text-muted leading-relaxed">
           临时调试链接会变；正式分享请用上面的固定域名。
@@ -189,7 +189,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
 
       <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm text-sm text-muted leading-relaxed">
         <h2 className="font-semibold text-ink">关于</h2>
-        <p className="mt-2">四川轻化工大学课表助手 · 纯前端 PWA</p>
+        <p className="mt-2">四川轻化工大学课表助手</p>
         <p className="mt-1">
           正方教务：{' '}
           <a
@@ -201,9 +201,9 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
             https://jwgl.suse.edu.cn
           </a>
         </p>
-        <p className="mt-1">版本 1.2.7</p>
+        <p className="mt-1">版本 1.2.8</p>
         <p className="mt-2 break-all text-xs text-muted">
-          https://susuc-kcb.shipstatic.com/
+          https://susuc-kcb.shipstatic.com
         </p>
       </section>
     </div>
