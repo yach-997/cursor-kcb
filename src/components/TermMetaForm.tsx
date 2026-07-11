@@ -89,7 +89,7 @@ export function TermMetaForm({
       </label>
 
       <label className="mt-3 block text-sm font-medium text-ink">
-        第 1 周星期一是几月几号？
+        开学上课第 1 周星期一是几月几号？
         <span className="mt-0.5 block text-xs font-normal text-muted">
           请填校历上第 1 周的星期一；若填了别的天，会自动对齐到那周周一
         </span>
