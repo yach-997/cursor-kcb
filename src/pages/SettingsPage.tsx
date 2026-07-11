@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TermMetaForm } from '../components/TermMetaForm'
 import { hardRefreshApp } from '../lib/hardRefresh'
 import { buildMockPayload } from '../lib/mockData'
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function SettingsPage({ data, onImport, onClear }: Props) {
+  const navigate = useNavigate()
   const [msg, setMsg] = useState<string | null>(null)
   const [editingTerm, setEditingTerm] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -27,8 +29,15 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
   }
 
   const loadDemo = () => {
+    if (
+      data?.courses?.length &&
+      !confirm('将用演示课表覆盖当前课表，确定吗？')
+    ) {
+      return
+    }
     onImport(buildMockPayload(0))
     flash('已载入演示课表')
+    window.setTimeout(() => navigate('/'), 500)
   }
 
   const handleHardRefresh = () => {
@@ -129,9 +138,9 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
           <button
             type="button"
             onClick={loadDemo}
-            className="rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white"
+            className="rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink"
           >
-            载入演示课表
+            先看演示课表
           </button>
           <button
             type="button"
@@ -189,7 +198,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
             https://jwgl.suse.edu.cn
           </a>
         </p>
-        <p className="mt-1">版本 1.3.14</p>
+        <p className="mt-1">版本 1.3.15</p>
         <p className="mt-2 break-all text-xs text-muted">
           https://susuc-kcb.shipstatic.com
         </p>

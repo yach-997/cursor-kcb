@@ -13,6 +13,8 @@ interface Props {
   week: number | null
   /** 学期尚未开始 */
   beforeTerm?: boolean
+  /** 未开学提示里的课表规模，缺省则按 courses 统计 */
+  courseSummary?: string
   onCourseClick?: (course: Course) => void
   onShowWeek?: () => void
 }
@@ -21,6 +23,7 @@ export function TodayView({
   courses,
   week,
   beforeTerm,
+  courseSummary,
   onCourseClick,
   onShowWeek,
 }: Props) {
@@ -61,7 +64,7 @@ export function TodayView({
         <div className="rounded-2xl border border-dashed border-line bg-white/70 px-4 py-8 text-center">
           <p className="text-sm font-medium text-ink">学期还没开始</p>
           <p className="mt-1 text-xs text-muted leading-relaxed">
-            课表已导入（共 {summarizeCourses(courses).label}）。到了你填的第一周之后，「今日」会按日期自动显示。
+            课表已导入（共 {courseSummary ?? summarizeCourses(courses).label}）。到了你填的第一周之后，「今日」会按日期自动显示。
           </p>
           {onShowWeek && (
             <button

@@ -198,6 +198,9 @@ export function HomePage({ data, onUpdate, onImport }: Props) {
                 courses={timedCourses}
                 week={teachingWeek}
                 beforeTerm={beforeTerm}
+                courseSummary={
+                  data ? summarizeCourses(data.courses).label : undefined
+                }
                 onCourseClick={openEditManual}
                 onShowWeek={() => setTab('week')}
               />

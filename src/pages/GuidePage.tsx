@@ -202,7 +202,7 @@ export function GuidePage({ onImport }: Props) {
         <div className="text-xs font-semibold text-brand">上传 PDF</div>
         <h2 className="mt-1 font-semibold text-ink">导入教务课表文件</h2>
         <p className="mt-1 text-[0.75rem] text-muted leading-relaxed">
-          跟着红框和箭头点就行，共 3 步。
+          跟着截图操作，共 3 步。
         </p>
 
         <ol className="mt-4 space-y-5 text-sm text-ink leading-relaxed">
