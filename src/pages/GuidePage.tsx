@@ -211,47 +211,47 @@ export function GuidePage({ onImport }: Props) {
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[0.7rem] font-bold text-white">
                 1
               </span>
-              <div className="min-w-0 flex-1">
-                <p>
-                  浏览器打开{' '}
-                  <a
-                    className="break-all font-medium text-brand underline"
-                    href="https://jwgl.suse.edu.cn"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    https://jwgl.suse.edu.cn
-                  </a>
-                  {' '}登录，再进「个人课表查询」
-                </p>
-                <figure className="mt-2 overflow-hidden rounded-xl border border-line bg-surface">
-                  <img
-                    src={`${import.meta.env.BASE_URL}guide/01-login.png`}
-                    alt="登录教务系统"
-                    className="w-full"
-                    loading="lazy"
-                  />
-                </figure>
-                <p className="mt-2 text-[0.75rem] text-muted">下面两种入口任选一种：</p>
-                <div className="mt-1.5 grid gap-2">
-                  <figure className="overflow-hidden rounded-xl border border-line bg-surface">
-                    <img
-                      src={`${import.meta.env.BASE_URL}guide/02-xuan-ke.png`}
-                      alt="选课 → 个人课表查询"
-                      className="w-full"
-                      loading="lazy"
-                    />
-                  </figure>
-                  <figure className="overflow-hidden rounded-xl border border-line bg-surface">
-                    <img
-                      src={`${import.meta.env.BASE_URL}guide/03-xinxi-chaxun.png`}
-                      alt="信息查询 → 个人课表查询"
-                      className="w-full"
-                      loading="lazy"
-                    />
-                  </figure>
-                </div>
-              </div>
+              <p className="min-w-0 flex-1">
+                浏览器打开{' '}
+                <a
+                  className="break-all font-medium text-brand underline"
+                  href="https://jwgl.suse.edu.cn"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  https://jwgl.suse.edu.cn
+                </a>
+                {' '}登录，再进「个人课表查询」
+              </p>
+            </div>
+            <figure className="mx-auto mt-2 w-full overflow-hidden rounded-xl border border-line bg-surface">
+              <img
+                src={`${import.meta.env.BASE_URL}guide/01-login.png`}
+                alt="登录教务系统"
+                className="mx-auto block h-auto w-full max-w-full object-contain"
+                loading="lazy"
+              />
+            </figure>
+            <p className="mt-2 text-center text-[0.75rem] text-muted">
+              下面两种入口任选一种：
+            </p>
+            <div className="mx-auto mt-1.5 grid w-full gap-2">
+              <figure className="mx-auto w-full overflow-hidden rounded-xl border border-line bg-surface">
+                <img
+                  src={`${import.meta.env.BASE_URL}guide/02-xuan-ke.png`}
+                  alt="选课 → 个人课表查询"
+                  className="mx-auto block h-auto w-full max-w-full object-contain"
+                  loading="lazy"
+                />
+              </figure>
+              <figure className="mx-auto w-full overflow-hidden rounded-xl border border-line bg-surface">
+                <img
+                  src={`${import.meta.env.BASE_URL}guide/03-xinxi-chaxun.png`}
+                  alt="信息查询 → 个人课表查询"
+                  className="mx-auto block h-auto w-full max-w-full object-contain"
+                  loading="lazy"
+                />
+              </figure>
             </div>
           </li>
 
@@ -260,18 +260,16 @@ export function GuidePage({ onImport }: Props) {
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[0.7rem] font-bold text-white">
                 2
               </span>
-              <div className="min-w-0 flex-1">
-                <p>点右上角「输出 PDF」，保存到手机</p>
-                <figure className="mt-2 overflow-hidden rounded-xl border border-line bg-surface">
-                  <img
-                    src={`${import.meta.env.BASE_URL}guide/04-export-pdf.png`}
-                    alt="点输出PDF"
-                    className="w-full"
-                    loading="lazy"
-                  />
-                </figure>
-              </div>
+              <p className="min-w-0 flex-1">点右上角「输出 PDF」，保存到手机</p>
             </div>
+            <figure className="mx-auto mt-2 w-full overflow-hidden rounded-xl border border-line bg-surface">
+              <img
+                src={`${import.meta.env.BASE_URL}guide/04-export-pdf.png`}
+                alt="点输出PDF"
+                className="mx-auto block h-auto w-full max-w-full object-contain"
+                loading="lazy"
+              />
+            </figure>
           </li>
 
           <li>
