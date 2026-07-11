@@ -149,6 +149,32 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         </div>
       </section>
 
+      <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
+        <h2 className="font-semibold text-ink">联系我们</h2>
+        <p className="mt-1 text-sm text-muted">使用有问题可联系客服或加入维护群。</p>
+        <div className="mt-3 flex items-center gap-3 text-sm">
+          <a
+            href="https://qm.qq.com/q/iy0gyxKnrq"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 font-medium text-brand active:opacity-70"
+          >
+            <span className="text-[0.7rem] opacity-70">QQ</span>
+            客服
+          </a>
+          <span className="h-3 w-px bg-line" aria-hidden />
+          <a
+            href="https://qm.qq.com/q/ZwGz3jrQis"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 font-medium text-brand active:opacity-70"
+          >
+            <span className="text-[0.7rem] opacity-70">QQ</span>
+            维护群
+          </a>
+        </div>
+      </section>
+
       <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm text-sm text-muted leading-relaxed">
         <h2 className="font-semibold text-ink">关于</h2>
         <p className="mt-2">四川轻化工大学课表助手</p>
@@ -163,7 +189,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
             https://jwgl.suse.edu.cn
           </a>
         </p>
-        <p className="mt-1">版本 1.3.5</p>
+        <p className="mt-1">版本 1.3.6</p>
         <p className="mt-2 break-all text-xs text-muted">
           https://susuc-kcb.shipstatic.com
         </p>

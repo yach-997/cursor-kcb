@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AddCourseSheet } from '../components/AddCourseSheet'
-import { ChannelCTA } from '../components/ChannelCTA'
 import { TermMetaForm } from '../components/TermMetaForm'
 import { TodayView } from '../components/TodayView'
 import { WeekView } from '../components/WeekView'
@@ -277,8 +276,6 @@ export function HomePage({ data, onUpdate }: Props) {
           </button>
         </div>
       ) : null}
-
-      <ChannelCTA />
 
       <AddCourseSheet
         open={sheetOpen}
