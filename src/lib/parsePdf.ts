@@ -522,7 +522,7 @@ function isNoiseItem(it: PdfTextItem): boolean {
   if (/^学号\s*[：:]/.test(s) || /^打印时间/.test(s)) return true
   if (/课表$/.test(s) && !NAME_MARK_RE.test(s) && s.length < 24) return true
   if (/\d{4}-\d{4}学年/.test(s)) return true
-  // 底部节次序号 1..11
+  // 底部节次序号（如 1..14）
   if (/^\d{1,2}$/.test(s) && it.y < 100) return true
   // 图例行
   if (/^:\s*课程设计/.test(s)) return true

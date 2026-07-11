@@ -7,7 +7,7 @@ export const DEFAULT_CHANNEL_URL = 'https://t.me/'
 
 export const WEEKDAY_LABELS = ['一', '二', '三', '四', '五', '六', '日'] as const
 
-/** 川轻化常见作息（第1节 08:30 起，第11节至 21:25） */
+/** 川轻化常见作息（第1节 08:30 起；晚间可到第14节） */
 export const SECTION_TIMES: Record<number, string> = {
   1: '08:30',
   2: '09:20',
@@ -21,6 +21,8 @@ export const SECTION_TIMES: Record<number, string> = {
   10: '19:50',
   11: '20:40',
   12: '21:30',
+  13: '22:20',
+  14: '23:10',
 }
 
 /** 完整起止时间，用于展示 */
@@ -37,6 +39,8 @@ export const SECTION_TIME_RANGES: Record<number, string> = {
   10: '19:50-20:35',
   11: '20:40-21:25',
   12: '21:30-22:15',
+  13: '22:20-23:05',
+  14: '23:10-23:55',
 }
 
 /** 稳定配色：按课程名哈希 */
@@ -200,9 +204,12 @@ export function weekMatches(course: Course, week: number | null): boolean {
 export function maxSection(courses: Course[]): number {
   let m = 8
   for (const c of courses) {
-    m = Math.max(m, c.endSection)
+    if ((c.schedule ?? 'timed') !== 'timed') continue
+    if (c.endSection > 0) m = Math.max(m, c.endSection)
+    if (c.startSection > 0) m = Math.max(m, c.startSection)
   }
-  return Math.min(Math.max(m, 8), 12)
+  // 按课表实际最大节次展示，正方晚间常见到 14 节
+  return Math.min(Math.max(m, 8), 16)
 }
 
 export function uid(): string {

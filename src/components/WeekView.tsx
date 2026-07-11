@@ -39,7 +39,7 @@ function sectionRow(sec: number): number {
 
 export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: Props) {
   const maxWeek = useMemo(() => detectMaxWeek(courses), [courses])
-  const periodCount = Math.min(Math.max(maxSection(courses), 8), 11)
+  const periodCount = Math.max(maxSection(courses), 8)
   const defaultWeek = useMemo(() => {
     if (suggestedWeek && suggestedWeek >= 1 && suggestedWeek <= maxWeek) {
       return suggestedWeek
@@ -59,11 +59,12 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
       courses.filter(
         (c) =>
           weekMatches(c, viewWeek) &&
-          c.startSection <= periodCount &&
+          c.startSection >= 1 &&
+          c.endSection >= c.startSection &&
           c.weekday >= 1 &&
           c.weekday <= 7,
       ),
-    [courses, viewWeek, periodCount],
+    [courses, viewWeek],
   )
 
   const dateLabels = useMemo(() => {
@@ -200,8 +201,15 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
           })}
 
           {weekCourses.map((course) => {
-            const endSec = Math.min(course.endSection, periodCount)
-            const rowStart = sectionRow(course.startSection)
+            const endSec = Math.min(
+              Math.max(course.endSection, course.startSection),
+              periodCount,
+            )
+            const startSec = Math.min(
+              Math.max(course.startSection, 1),
+              periodCount,
+            )
+            const rowStart = sectionRow(startSec)
             const rowEnd = sectionRow(endSec) + 1
             const color = courseColor(course.name)
             const clickable = course.source === 'manual' && onCourseClick

@@ -105,8 +105,8 @@ export function AddCourseSheet({
     }
     let start = Math.min(startSection, endSection)
     let end = Math.max(startSection, endSection)
-    start = Math.min(Math.max(start, 1), 11)
-    end = Math.min(Math.max(end, 1), 11)
+    start = Math.min(Math.max(start, 1), 14)
+    end = Math.min(Math.max(end, 1), 14)
 
     let weeks = String(baseWeek + 1)
     if (weekMode === 'this') weeks = String(baseWeek)
@@ -278,7 +278,7 @@ export function AddCourseSheet({
           <div className="text-sm font-medium text-ink">第几节？</div>
           <p className="text-[0.7rem] text-muted">点两下可选连堂：先点开始节，再点结束节</p>
           <div className="mt-1.5 grid grid-cols-6 gap-1.5">
-            {Array.from({ length: 11 }, (_, i) => i + 1).map((sec) => {
+            {Array.from({ length: 14 }, (_, i) => i + 1).map((sec) => {
               const inRange =
                 sec >= Math.min(startSection, endSection) &&
                 sec <= Math.max(startSection, endSection)
