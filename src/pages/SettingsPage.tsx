@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AddToHomeButton } from '../components/AddToHomeButton'
 import { TermMetaForm } from '../components/TermMetaForm'
 import { hardRefreshApp } from '../lib/hardRefresh'
 import { buildMockPayload } from '../lib/mockData'
@@ -50,6 +51,13 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
     })
   }
 
+  const handleClearTimetable = () => {
+    if (!confirm('确定清除本地课表？')) return
+    clearTimetable()
+    onClear()
+    flash('已清除')
+  }
+
   return (
     <div className="flex-1 overflow-y-auto px-4 pb-6 pt-5 animate-fade-in">
       <h1 className="font-display text-2xl font-bold text-ink">设置</h1>
@@ -61,7 +69,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
       )}
 
       <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-        <h2 className="font-semibold text-ink">更新 / 修复识别</h2>
+        <h2 className="font-semibold text-ink">更新 / 清理</h2>
         <p className="mt-1 text-sm text-muted leading-relaxed">
           同学请收藏这一个固定地址（更新后刷新即可，不用换链接）：
         </p>
@@ -72,7 +80,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
           https://susuc-kcb.shipstatic.com
         </a>
         <p className="mt-2 text-[0.75rem] text-muted leading-relaxed">
-          若页面还是旧版，点下方清理缓存。
+          若页面还是旧版，先清理缓存；不要的课表可在下方清除。
         </p>
         <button
           type="button"
@@ -82,6 +90,21 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
         >
           {refreshing ? '正在清理…' : '清理缓存并刷新'}
         </button>
+        <button
+          type="button"
+          onClick={handleClearTimetable}
+          className="mt-2 w-full rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-expired"
+        >
+          清除本地课表
+        </button>
+      </section>
+
+      <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
+        <h2 className="font-semibold text-ink">添加到桌面</h2>
+        <p className="mt-1 text-sm text-muted leading-relaxed">
+          放到手机桌面后，打开更快，也更像一个 App。
+        </p>
+        <AddToHomeButton />
       </section>
 
       <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
@@ -134,28 +157,13 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
             ? `${summarizeCourses(data.courses).label} · 更新于 ${new Date(data.updatedAt).toLocaleString('zh-CN')}`
             : '暂无数据'}
         </p>
-        <div className="mt-3 grid gap-2">
-          <button
-            type="button"
-            onClick={loadDemo}
-            className="rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink"
-          >
-            先看演示课表
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm('确定清除本地课表？')) {
-                clearTimetable()
-                onClear()
-                flash('已清除')
-              }
-            }}
-            className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-expired"
-          >
-            清除本地课表
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={loadDemo}
+          className="mt-3 w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink"
+        >
+          先看演示课表
+        </button>
       </section>
 
       <section className="mt-4 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
@@ -198,7 +206,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
             https://jwgl.suse.edu.cn
           </a>
         </p>
-        <p className="mt-1">版本 1.3.16</p>
+        <p className="mt-1">版本 1.3.17</p>
         <p className="mt-2 break-all text-xs text-muted">
           https://susuc-kcb.shipstatic.com
         </p>
