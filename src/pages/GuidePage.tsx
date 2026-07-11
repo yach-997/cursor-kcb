@@ -5,9 +5,11 @@ import {
   base64ToArrayBuffer,
   clearImportDraft,
   fileToBase64,
+  inAppBrowserKind,
   isInAppBrowser,
   loadImportDraft,
   looksLikePdf,
+  publicAppUrl,
   readBlobBuffer,
   saveImportDraft,
 } from '../lib/importDraft'
@@ -32,6 +34,20 @@ export function GuidePage({ onImport }: Props) {
   const [fileName, setFileName] = useState<string | null>(null)
   const [pending, setPending] = useState<TimetablePayload | null>(null)
   const [inApp] = useState(() => isInAppBrowser())
+  const [appKind] = useState(() => inAppBrowserKind())
+  const [copied, setCopied] = useState(false)
+
+  const copySiteLink = async () => {
+    const url = publicAppUrl()
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      window.prompt('复制下面的链接，到系统浏览器打开：', url)
+      return
+    }
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 2000)
+  }
 
   const finishImport = (payload: TimetablePayload, tip: string) => {
     clearImportDraft()
@@ -77,9 +93,16 @@ export function GuidePage({ onImport }: Props) {
       saveImportDraft({ pdfBase64: undefined, fileName: name, pending: undefined })
       setOkMsg(null)
       const raw = e instanceof Error ? e.message : String(e)
-      setError(raw.startsWith('PDF') || raw.includes('识别') || raw.includes('课表')
-        ? raw
-        : `PDF 解析失败：${raw}`)
+      let msg =
+        raw.startsWith('PDF') ||
+        raw.includes('识别') ||
+        raw.includes('课表')
+          ? raw
+          : `PDF 解析失败：${raw}`
+      if (isInAppBrowser()) {
+        msg += '。若反复失败，请点上方「复制本站链接」，用系统浏览器打开后再导入。'
+      }
+      setError(msg)
     } finally {
       parsingRef.current = false
       setBusy(false)
@@ -179,9 +202,31 @@ export function GuidePage({ onImport }: Props) {
       </p>
 
       {inApp && (
-        <p className="mt-3 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-muted leading-relaxed">
-          当前是微信/QQ 内打开，部分机型解析会不稳定。若导入失败，可在系统浏览器中打开本站重试。
-        </p>
+        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-ink leading-relaxed">
+          <p className="font-semibold text-ink">
+            {appKind === 'wechat' ? '微信里打开' : appKind === 'qq' ? 'QQ 里打开' : '当前内置浏览器'}
+          </p>
+          <p className="mt-1 text-[0.8rem] text-muted">
+            可直接导入；若失败，请用系统浏览器打开本站（更稳）：
+          </p>
+          <ol className="mt-2 list-decimal space-y-1 pl-4 text-[0.8rem] text-muted">
+            <li>点右上角 <span className="font-semibold text-ink">···</span></li>
+            <li>
+              选「
+              <span className="font-semibold text-ink">
+                {appKind === 'qq' ? '用浏览器打开' : '在浏览器打开'}
+              </span>
+              」
+            </li>
+          </ol>
+          <button
+            type="button"
+            onClick={() => void copySiteLink()}
+            className="mt-3 w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-brand-dark"
+          >
+            {copied ? '已复制链接' : '复制本站链接'}
+          </button>
+        </div>
       )}
 
       <section className="mt-5 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
@@ -274,7 +319,7 @@ export function GuidePage({ onImport }: Props) {
           ref={fileRef}
           id="timetable-pdf-input"
           type="file"
-          accept="application/pdf,.pdf,application/octet-stream"
+          accept=".pdf,application/pdf,application/octet-stream,*/*"
           className="sr-only"
           onChange={(e) => {
             const f = e.target.files?.[0] ?? null
@@ -291,12 +336,12 @@ export function GuidePage({ onImport }: Props) {
             busy ? 'pointer-events-none opacity-60' : ''
           }`}
         >
-          {busy ? '正在识别…最多约 30 秒' : '选择课表 PDF'}
+          {busy ? '正在识别…最多约 45 秒' : '选择课表 PDF'}
         </label>
 
         {busy && (
           <p className="mt-2 text-center text-[0.75rem] text-muted">
-            手机端在主线程解析，请稍候；超时会自动提示，不会一直转
+            正在主线程解析课表，请稍候；超时会自动提示
           </p>
         )}
 

@@ -936,7 +936,7 @@ function parseGridStyleCourses(items: PdfTextItem[]): Course[] {
 /**
  * 提取 PDF 文本。
  * 使用 pdf.js 4.x（无 for-await ReadableStream），兼容绝大多数手机浏览器。
- * 通过 globalThis.pdfjsWorker 走主线程，避免 module Worker 卡死。
+ * 强制主线程 fake worker：微信/QQ 内置 WebView 的 module Worker 常会挂死。
  */
 export async function extractPdfTextItems(
   data: ArrayBuffer,
@@ -945,16 +945,33 @@ export async function extractPdfTextItems(
 
   const run = async () => {
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-    const pdfjsWorker = await import(
+    const workerMod = await import(
       'pdfjs-dist/legacy/build/pdf.worker.min.mjs'
     )
+    const handler =
+      (
+        workerMod as {
+          WorkerMessageHandler?: unknown
+          default?: { WorkerMessageHandler?: unknown }
+        }
+      ).WorkerMessageHandler ||
+      (
+        workerMod as {
+          default?: { WorkerMessageHandler?: unknown }
+        }
+      ).default?.WorkerMessageHandler
+    if (!handler) {
+      throw new Error('PDF 引擎初始化失败：缺少 WorkerMessageHandler')
+    }
+    // 必须在 getDocument 之前挂上，pdf.js 才会跳过 new Worker(...)
     ;(
       globalThis as unknown as {
-        pdfjsWorker: { WorkerMessageHandler?: unknown }
+        pdfjsWorker: { WorkerMessageHandler: unknown }
       }
-    ).pdfjsWorker = pdfjsWorker
+    ).pdfjsWorker = { WorkerMessageHandler: handler }
 
     const root = assetRoot()
+    // fake worker 路径仍可能读 workerSrc 作兜底；给同源地址即可
     pdfjs.GlobalWorkerOptions.workerSrc = new URL(
       'pdfjs/pdf.worker.min.mjs',
       root,
@@ -983,7 +1000,7 @@ export async function extractPdfTextItems(
     try {
       const doc = await withTimeout(
         loadingTask.promise,
-        20000,
+        25000,
         '打开 PDF 超时',
       )
       const items: PdfTextItem[] = []
@@ -991,7 +1008,7 @@ export async function extractPdfTextItems(
         const page = await doc.getPage(i)
         const content = await withTimeout(
           page.getTextContent(),
-          12000,
+          15000,
           `读取第 ${i} 页超时`,
         )
         for (const raw of content.items) {
@@ -1022,7 +1039,7 @@ export async function extractPdfTextItems(
   }
 
   try {
-    return await withTimeout(run(), 35000, '识别超时，请重新选择 PDF')
+    return await withTimeout(run(), 45000, '识别超时，请重新选择 PDF')
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     if (/^PDF |^识别|^课表字体|^打开 PDF/.test(msg))

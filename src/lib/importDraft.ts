@@ -12,18 +12,60 @@ export type ImportDraft = {
   updatedAt: number
 }
 
-function canUseStorage(): boolean {
+function storageList(): Storage[] {
+  const list: Storage[] = []
   try {
-    return typeof sessionStorage !== 'undefined'
+    if (typeof localStorage !== 'undefined') list.push(localStorage)
   } catch {
-    return false
+    /* ignore */
+  }
+  try {
+    if (typeof sessionStorage !== 'undefined') list.push(sessionStorage)
+  } catch {
+    /* ignore */
+  }
+  return list
+}
+
+function readRaw(): string | null {
+  // 微信/QQ 选文件常会重建 WebView，sessionStorage 会丢；优先读 localStorage
+  for (const store of storageList()) {
+    try {
+      const raw = store.getItem(DRAFT_KEY)
+      if (raw) return raw
+    } catch {
+      /* ignore */
+    }
+  }
+  return null
+}
+
+function writeRaw(raw: string): boolean {
+  let ok = false
+  for (const store of storageList()) {
+    try {
+      store.setItem(DRAFT_KEY, raw)
+      ok = true
+    } catch {
+      /* quota / private mode */
+    }
+  }
+  return ok
+}
+
+function removeRaw(): void {
+  for (const store of storageList()) {
+    try {
+      store.removeItem(DRAFT_KEY)
+    } catch {
+      /* ignore */
+    }
   }
 }
 
 export function loadImportDraft(): ImportDraft | null {
-  if (!canUseStorage()) return null
   try {
-    const raw = sessionStorage.getItem(DRAFT_KEY)
+    const raw = readRaw()
     if (!raw) return null
     const data = JSON.parse(raw) as ImportDraft
     if (data?.v !== 1) return null
@@ -46,30 +88,18 @@ export function saveImportDraft(patch: Partial<ImportDraft>): ImportDraft {
     v: 1,
     updatedAt: Date.now(),
   }
-  if (canUseStorage()) {
-    try {
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify(next))
-    } catch {
-      // quota：丢掉 PDF 字节，至少保住识别结果
-      try {
-        const slim = { ...next, pdfBase64: undefined }
-        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(slim))
-        return slim
-      } catch {
-        /* ignore */
-      }
-    }
+  const raw = JSON.stringify(next)
+  if (!writeRaw(raw)) {
+    // quota：丢掉 PDF 字节，至少保住识别结果
+    const slim = { ...next, pdfBase64: undefined }
+    writeRaw(JSON.stringify(slim))
+    return slim
   }
   return next
 }
 
 export function clearImportDraft(): void {
-  if (!canUseStorage()) return
-  try {
-    sessionStorage.removeItem(DRAFT_KEY)
-  } catch {
-    /* ignore */
-  }
+  removeRaw()
 }
 
 export async function fileToBase64(file: Blob): Promise<string> {
@@ -128,4 +158,18 @@ export function looksLikePdf(file: File): boolean {
 export function isInAppBrowser(): boolean {
   const ua = navigator.userAgent || ''
   return /MicroMessenger|QQ\//i.test(ua) && !/QQBrowser/i.test(ua)
+}
+
+export function inAppBrowserKind(): 'wechat' | 'qq' | null {
+  const ua = navigator.userAgent || ''
+  if (/MicroMessenger/i.test(ua)) return 'wechat'
+  if (/QQ\//i.test(ua) && !/QQBrowser/i.test(ua)) return 'qq'
+  return null
+}
+
+/** 给同学复制到系统浏览器打开的干净地址 */
+export function publicAppUrl(): string {
+  const { origin, pathname } = window.location
+  const base = pathname.replace(/\/index\.html$/i, '/').replace(/\/?$/, '/')
+  return `${origin}${base}`
 }
