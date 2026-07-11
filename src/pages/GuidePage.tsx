@@ -99,9 +99,6 @@ export function GuidePage({ onImport }: Props) {
         raw.includes('课表')
           ? raw
           : `PDF 解析失败：${raw}`
-      if (isInAppBrowser()) {
-        msg += '。若反复失败，请点上方「复制本站链接」，用系统浏览器打开后再导入。'
-      }
       setError(msg)
     } finally {
       parsingRef.current = false
@@ -200,34 +197,6 @@ export function GuidePage({ onImport }: Props) {
       <p className="mt-1 text-sm text-muted leading-relaxed">
         上传教务导出的课表 PDF 文件（表格式 / 列表式均可）。识别后请填写学期与第一周日期。
       </p>
-
-      {inApp && (
-        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-ink leading-relaxed">
-          <p className="font-semibold text-ink">
-            {appKind === 'wechat' ? '微信里打开' : appKind === 'qq' ? 'QQ 里打开' : '当前内置浏览器'}
-          </p>
-          <p className="mt-1 text-[0.8rem] text-muted">
-            可直接导入；若失败，请用系统浏览器打开本站（更稳）：
-          </p>
-          <ol className="mt-2 list-decimal space-y-1 pl-4 text-[0.8rem] text-muted">
-            <li>点右上角 <span className="font-semibold text-ink">···</span></li>
-            <li>
-              选「
-              <span className="font-semibold text-ink">
-                {appKind === 'qq' ? '用浏览器打开' : '在浏览器打开'}
-              </span>
-              」
-            </li>
-          </ol>
-          <button
-            type="button"
-            onClick={() => void copySiteLink()}
-            className="mt-3 w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-brand-dark"
-          >
-            {copied ? '已复制链接' : '复制本站链接'}
-          </button>
-        </div>
-      )}
 
       <section className="mt-5 rounded-2xl border border-line bg-white/90 p-4 shadow-sm">
         <div className="text-xs font-semibold text-brand">上传 PDF</div>
@@ -355,6 +324,27 @@ export function GuidePage({ onImport }: Props) {
         {error && (
           <div className="mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-expired leading-relaxed">
             <p>{error}</p>
+            {inApp && (
+              <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-ink">
+                <p className="text-[0.8rem] font-semibold">
+                  当前是在
+                  {appKind === 'wechat' ? '微信' : appKind === 'qq' ? 'QQ' : '内置浏览器'}
+                  里打开，部分机型会导入失败
+                </p>
+                <p className="mt-1 text-[0.75rem] text-muted">
+                  可改用系统浏览器：右上角 ··· →「
+                  {appKind === 'qq' ? '用浏览器打开' : '在浏览器打开'}
+                  」，或先复制链接再粘贴打开。
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void copySiteLink()}
+                  className="mt-2 w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm font-semibold text-brand-dark"
+                >
+                  {copied ? '已复制链接' : '复制本站链接'}
+                </button>
+              </div>
+            )}
             <button
               type="button"
               onClick={() => {
@@ -381,6 +371,24 @@ export function GuidePage({ onImport }: Props) {
         >
           先看演示课表（不用上传）
         </button>
+
+        {inApp && !error && (
+          <p className="mt-3 text-center text-[0.7rem] leading-relaxed text-muted">
+            当前是在
+            {appKind === 'wechat' ? '微信' : appKind === 'qq' ? 'QQ' : '内置浏览器'}
+            里打开。若导入失败，可点右上角 ··· →「
+            {appKind === 'qq' ? '用浏览器打开' : '在浏览器打开'}
+            」，或
+            <button
+              type="button"
+              onClick={() => void copySiteLink()}
+              className="mx-0.5 font-medium text-brand underline"
+            >
+              {copied ? '已复制链接' : '复制本站链接'}
+            </button>
+            到系统浏览器打开。
+          </p>
+        )}
       </section>
     </div>
   )
