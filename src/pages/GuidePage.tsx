@@ -202,7 +202,7 @@ export function GuidePage({ onImport }: Props) {
         <div className="text-xs font-semibold text-brand">上传 PDF</div>
         <h2 className="mt-1 font-semibold text-ink">导入教务课表文件</h2>
         <p className="mt-1 text-[0.75rem] text-muted leading-relaxed">
-          跟着红框和箭头点就行，共 3 步。
+          跟着红框和箭头点就行，共 3 步。微信/QQ 里下载的 PDF 要先「保存到手机」才能选到。
         </p>
 
         <ol className="mt-4 space-y-5 text-sm text-ink leading-relaxed">
@@ -261,7 +261,7 @@ export function GuidePage({ onImport }: Props) {
                 2
               </span>
               <div className="min-w-0 flex-1">
-                <p>点右上角「输出 PDF」，保存到手机</p>
+                <p>点右上角「输出 PDF」，下载课表</p>
                 <figure className="mt-2 overflow-hidden rounded-xl border border-line bg-surface">
                   <img
                     src={`${import.meta.env.BASE_URL}guide/04-export-pdf.png`}
@@ -270,6 +270,10 @@ export function GuidePage({ onImport }: Props) {
                     loading="lazy"
                   />
                 </figure>
+                <p className="mt-2 rounded-lg bg-surface px-2.5 py-2 text-[0.75rem] leading-relaxed text-muted">
+                  若在微信/QQ 里下载：点开这个 PDF → 右上角 ··· →「用其他应用打开」或「保存到手机 / 文件」。
+                  只点下载、不保存的话，上传时往往找不到。
+                </p>
               </div>
             </div>
           </li>
@@ -279,7 +283,9 @@ export function GuidePage({ onImport }: Props) {
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[0.7rem] font-bold text-white">
                 3
               </span>
-              <p className="min-w-0 flex-1">点下方按钮，上传刚下载的 PDF 文件</p>
+              <p className="min-w-0 flex-1">
+                点下方按钮，从「文件」里选刚保存到手机的 PDF
+              </p>
             </div>
           </li>
         </ol>
@@ -376,7 +382,7 @@ export function GuidePage({ onImport }: Props) {
           <p className="mt-3 text-center text-[0.7rem] leading-relaxed text-muted">
             当前是在
             {appKind === 'wechat' ? '微信' : appKind === 'qq' ? 'QQ' : '内置浏览器'}
-            里打开。若导入失败，可点右上角 ··· →「
+            里打开。下载的 PDF 请先打开并「保存到手机」，上传时才能选到；若仍失败，可点右上角 ··· →「
             {appKind === 'qq' ? '用浏览器打开' : '在浏览器打开'}
             」，或
             <button
