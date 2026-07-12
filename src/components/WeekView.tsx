@@ -17,23 +17,6 @@ interface Props {
   onCourseClick?: (course: Course) => void
 }
 
-/** 单双周角标样式（手机上纹路几乎看不清，改用高对比角标） */
-function parityBadgeClass(parity: Course['weekParity']): string | null {
-  if (parity === 'odd') {
-    return 'bg-amber-300 text-amber-950'
-  }
-  if (parity === 'even') {
-    return 'bg-sky-300 text-sky-950'
-  }
-  return null
-}
-
-function parityLabel(parity: Course['weekParity']): string {
-  if (parity === 'odd') return '单'
-  if (parity === 'even') return '双'
-  return ''
-}
-
 /** 节次 → 网格行号（1=表头；午休占一行） */
 function sectionRow(sec: number): number {
   if (sec <= 4) return 1 + sec
@@ -253,28 +236,15 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
             const rowEnd = sectionRow(endSec) + 1
             const color = courseColor(course.name)
             const clickable = course.source === 'manual' && onCourseClick
-            const badgeClass = parityBadgeClass(course.weekParity)
             const className =
-              'relative z-10 m-[3px] flex flex-col items-center justify-center overflow-hidden rounded-md px-1 py-1 text-center text-white shadow-sm'
+              'z-10 m-[3px] flex flex-col items-center justify-center overflow-hidden rounded-md px-1 py-1 text-center text-white shadow-sm'
             const style = {
               gridColumn: course.weekday + 1,
               gridRow: `${rowStart} / ${rowEnd}`,
               background: `linear-gradient(160deg, ${color}f2, ${color}cc)`,
-              boxShadow: badgeClass
-                ? course.weekParity === 'odd'
-                  ? 'inset 0 0 0 1.5px rgba(251, 191, 36, 0.95)'
-                  : 'inset 0 0 0 1.5px rgba(56, 189, 248, 0.95)'
-                : undefined,
             } as const
             const body = (
               <>
-                {badgeClass && (
-                  <span
-                    className={`absolute left-0.5 top-0.5 rounded px-[3px] py-px text-[0.55rem] font-extrabold leading-none ${badgeClass}`}
-                  >
-                    {parityLabel(course.weekParity)}
-                  </span>
-                )}
                 <div className="text-[0.62rem] font-bold leading-snug break-all">
                   {course.name}
                 </div>
@@ -304,27 +274,10 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
           })}
         </div>
 
-        <div className="mt-2 space-y-1.5 text-center text-[0.65rem] text-muted">
-          <p>
-            第 {viewWeek} 周
-            {viewingRealToday ? '（含今天）' : ''}
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-            <span className="inline-flex items-center gap-1">
-              <span className="rounded bg-amber-300 px-1 py-px text-[0.55rem] font-extrabold leading-none text-amber-950">
-                单
-              </span>
-              单周课
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="rounded bg-sky-300 px-1 py-px text-[0.55rem] font-extrabold leading-none text-sky-950">
-                双
-              </span>
-              双周课
-            </span>
-            <span>无角标 = 每周都上</span>
-          </div>
-        </div>
+        <p className="mt-2 text-center text-[0.65rem] text-muted">
+          第 {viewWeek} 周
+          {viewingRealToday ? '（含今天）' : ''}
+        </p>
       </div>
     </div>
   )
