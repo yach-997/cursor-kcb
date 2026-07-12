@@ -47,7 +47,6 @@ export default defineConfig({
         'favicon.svg',
         'apple-touch-icon.png',
         'clear.html',
-        'version.json',
       ],
       manifest: {
         name: '川轻化课表助手',

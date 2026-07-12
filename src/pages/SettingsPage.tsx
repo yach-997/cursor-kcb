@@ -51,9 +51,11 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
     if (!confirm('将清理应用缓存并重新加载（课表数据保留），确定吗？')) return
     setRefreshing(true)
     setMsg('正在清理缓存…')
+    window.setTimeout(() => {
+      window.location.reload()
+    }, 4000)
     void hardRefreshApp({ clearTimetable: false }).catch(() => {
-      setRefreshing(false)
-      setMsg('自动清理失败，请手动清除网站数据后再打开')
+      window.location.reload()
     })
   }
 
