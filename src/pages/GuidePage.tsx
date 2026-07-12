@@ -325,8 +325,8 @@ export function GuidePage({ onImport }: Props) {
                 </p>
                 <p className="mt-1 text-[0.75rem] text-muted">
                   {appKind === 'qq'
-                    ? 'QQ 里菜单位置因机型不同。最稳妥：点下方复制链接，到手机浏览器粘贴打开。'
-                    : '可改用手机浏览器：右上角 ··· →「在浏览器打开」，或先复制链接再粘贴打开。'}
+                    ? '点下方「复制本站链接」，到手机浏览器粘贴打开。'
+                    : '右上角 ··· →「在浏览器打开」，或复制链接到手机浏览器打开。'}
                 </p>
                 <button
                   type="button"
@@ -358,12 +358,9 @@ export function GuidePage({ onImport }: Props) {
 
         {inApp && !error && (
           <p className="mt-3 text-center text-[0.7rem] leading-relaxed text-muted">
-            当前是在
-            {appKind === 'wechat' ? '微信' : appKind === 'qq' ? 'QQ' : '内置浏览器'}
-            里打开。
             {appKind === 'qq' ? (
               <>
-                若导入失败，请
+                请
                 <button
                   type="button"
                   onClick={() => void copySiteLink()}
@@ -371,11 +368,11 @@ export function GuidePage({ onImport }: Props) {
                 >
                   {copied ? '已复制链接' : '复制本站链接'}
                 </button>
-                到手机浏览器打开。
+                ，到手机浏览器打开。
               </>
             ) : (
               <>
-                若导入失败，可点右上角 ··· →「在浏览器打开」，或
+                若导入失败：右上角 ··· →「在浏览器打开」，或
                 <button
                   type="button"
                   onClick={() => void copySiteLink()}
