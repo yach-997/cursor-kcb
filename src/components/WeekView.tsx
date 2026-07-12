@@ -17,15 +17,20 @@ interface Props {
   onCourseClick?: (course: Course) => void
 }
 
-/** 单双周课块辅助纹路（卡片上另有文字标注） */
-const ODD_STRIPE =
-  ', repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255,255,255,0.22) 3px, rgba(255,255,255,0.22) 6px)'
-const EVEN_STRIPE =
-  ', repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,0.14) 3px, rgba(0,0,0,0.14) 6px)'
+/** 单双周角标样式（手机上纹路几乎看不清，改用高对比角标） */
+function parityBadgeClass(parity: Course['weekParity']): string | null {
+  if (parity === 'odd') {
+    return 'bg-amber-300 text-amber-950'
+  }
+  if (parity === 'even') {
+    return 'bg-sky-300 text-sky-950'
+  }
+  return null
+}
 
-function parityStripe(parity: Course['weekParity']): string {
-  if (parity === 'odd') return ODD_STRIPE
-  if (parity === 'even') return EVEN_STRIPE
+function parityLabel(parity: Course['weekParity']): string {
+  if (parity === 'odd') return '单'
+  if (parity === 'even') return '双'
   return ''
 }
 
@@ -248,37 +253,36 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
             const rowEnd = sectionRow(endSec) + 1
             const color = courseColor(course.name)
             const clickable = course.source === 'manual' && onCourseClick
-            const stripe = parityStripe(course.weekParity)
+            const badgeClass = parityBadgeClass(course.weekParity)
             const className =
-              'z-10 m-[3px] flex flex-col items-center justify-center overflow-hidden rounded-md px-1 py-1 text-center text-white shadow-sm'
+              'relative z-10 m-[3px] flex flex-col items-center justify-center overflow-hidden rounded-md px-1 py-1 text-center text-white shadow-sm'
             const style = {
               gridColumn: course.weekday + 1,
               gridRow: `${rowStart} / ${rowEnd}`,
-              background: `linear-gradient(160deg, ${color}f2, ${color}cc)${stripe}`,
+              background: `linear-gradient(160deg, ${color}f2, ${color}cc)`,
+              boxShadow: badgeClass
+                ? course.weekParity === 'odd'
+                  ? 'inset 0 0 0 1.5px rgba(251, 191, 36, 0.95)'
+                  : 'inset 0 0 0 1.5px rgba(56, 189, 248, 0.95)'
+                : undefined,
             } as const
             const body = (
               <>
+                {badgeClass && (
+                  <span
+                    className={`absolute left-0.5 top-0.5 rounded px-[3px] py-px text-[0.55rem] font-extrabold leading-none ${badgeClass}`}
+                  >
+                    {parityLabel(course.weekParity)}
+                  </span>
+                )}
                 <div className="text-[0.62rem] font-bold leading-snug break-all">
                   {course.name}
                 </div>
                 <div className="mt-0.5 text-[0.52rem] leading-tight opacity-95 break-all">
                   {course.room}
                 </div>
-                {(course.weekParity === 'odd' ||
-                  course.weekParity === 'even' ||
-                  course.source === 'manual') && (
-                  <div className="mt-0.5 text-[0.48rem] opacity-90">
-                    {[
-                      course.weekParity === 'odd'
-                        ? '单周'
-                        : course.weekParity === 'even'
-                          ? '双周'
-                          : '',
-                      course.source === 'manual' ? '自加' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </div>
+                {course.source === 'manual' && (
+                  <div className="mt-0.5 text-[0.48rem] opacity-90">自加</div>
                 )}
               </>
             )
@@ -305,37 +309,20 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
             第 {viewWeek} 周
             {viewingRealToday ? '（含今天）' : ''}
           </p>
-          <div className="flex items-center justify-center gap-3">
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                className="h-3.5 w-5 rounded-sm"
-                style={{
-                  background: `linear-gradient(160deg, #0d6e5af2, #0d6e5acc)${ODD_STRIPE}`,
-                }}
-                aria-hidden
-              />
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+            <span className="inline-flex items-center gap-1">
+              <span className="rounded bg-amber-300 px-1 py-px text-[0.55rem] font-extrabold leading-none text-amber-950">
+                单
+              </span>
               单周课
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                className="h-3.5 w-5 rounded-sm"
-                style={{
-                  background: `linear-gradient(160deg, #0d6e5af2, #0d6e5acc)${EVEN_STRIPE}`,
-                }}
-                aria-hidden
-              />
+            <span className="inline-flex items-center gap-1">
+              <span className="rounded bg-sky-300 px-1 py-px text-[0.55rem] font-extrabold leading-none text-sky-950">
+                双
+              </span>
               双周课
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span
-                className="h-3.5 w-5 rounded-sm"
-                style={{
-                  background: 'linear-gradient(160deg, #0d6e5af2, #0d6e5acc)',
-                }}
-                aria-hidden
-              />
-              每周
-            </span>
+            <span>无角标 = 每周都上</span>
           </div>
         </div>
       </div>
