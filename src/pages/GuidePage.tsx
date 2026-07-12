@@ -324,9 +324,9 @@ export function GuidePage({ onImport }: Props) {
                   里打开，部分机型会导入失败
                 </p>
                 <p className="mt-1 text-[0.75rem] text-muted">
-                  可改用手机浏览器：右上角 ··· →「
-                  {appKind === 'qq' ? '用浏览器打开' : '在浏览器打开'}
-                  」，或先复制链接再粘贴打开。
+                  {appKind === 'qq'
+                    ? 'QQ 里菜单位置因机型不同。最稳妥：点下方复制链接，到手机浏览器粘贴打开。'
+                    : '可改用手机浏览器：右上角 ··· →「在浏览器打开」，或先复制链接再粘贴打开。'}
                 </p>
                 <button
                   type="button"
@@ -360,17 +360,32 @@ export function GuidePage({ onImport }: Props) {
           <p className="mt-3 text-center text-[0.7rem] leading-relaxed text-muted">
             当前是在
             {appKind === 'wechat' ? '微信' : appKind === 'qq' ? 'QQ' : '内置浏览器'}
-            里打开。若导入失败，可点右上角 ··· →「
-            {appKind === 'qq' ? '用浏览器打开' : '在浏览器打开'}
-            」，或
-            <button
-              type="button"
-              onClick={() => void copySiteLink()}
-              className="mx-0.5 font-medium text-brand underline"
-            >
-              {copied ? '已复制链接' : '复制本站链接'}
-            </button>
-            到手机浏览器打开。
+            里打开。
+            {appKind === 'qq' ? (
+              <>
+                若导入失败，请
+                <button
+                  type="button"
+                  onClick={() => void copySiteLink()}
+                  className="mx-0.5 font-medium text-brand underline"
+                >
+                  {copied ? '已复制链接' : '复制本站链接'}
+                </button>
+                到手机浏览器打开。
+              </>
+            ) : (
+              <>
+                若导入失败，可点右上角 ··· →「在浏览器打开」，或
+                <button
+                  type="button"
+                  onClick={() => void copySiteLink()}
+                  className="mx-0.5 font-medium text-brand underline"
+                >
+                  {copied ? '已复制链接' : '复制本站链接'}
+                </button>
+                到手机浏览器打开。
+              </>
+            )}
           </p>
         )}
       </section>

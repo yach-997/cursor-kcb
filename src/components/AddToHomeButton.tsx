@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { publicAppUrl } from '../lib/importDraft'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -16,49 +17,59 @@ function isStandalone(): boolean {
   return false
 }
 
-/** 分机型说明（始终展示） */
-function deviceTips(): string[] {
+function detectKind(): 'wechat' | 'qq' | 'baidu' | 'ios' | 'android' | 'other' {
   const ua = navigator.userAgent || ''
-  if (/MicroMessenger/i.test(ua)) {
-    return [
-      '微信：点右上角 ··· →「在浏览器打开」',
-      '再用浏览器打开后，点下方「一键添加到桌面」',
-    ]
+  if (/MicroMessenger/i.test(ua)) return 'wechat'
+  if (/QQ\//i.test(ua) && !/QQBrowser/i.test(ua)) return 'qq'
+  if (/baidubrowser|baiduboxapp/i.test(ua)) return 'baidu'
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'ios'
+  if (/Android/i.test(ua)) return 'android'
+  return 'other'
+}
+
+/** 分机型说明（始终展示） */
+function deviceTips(kind: ReturnType<typeof detectKind>): string[] {
+  switch (kind) {
+    case 'wechat':
+      return [
+        '微信内无法直接加桌面',
+        '点下方「复制链接」，到手机浏览器粘贴打开后再添加',
+      ]
+    case 'qq':
+      return [
+        'QQ 内置页菜单位置因机型不同，不一定有右上角 ···',
+        '最稳妥：点下方「复制链接」，到手机浏览器粘贴打开后再添加桌面',
+      ]
+    case 'baidu':
+      return [
+        '百度内一般不能一键加桌面',
+        '点下方「复制链接」，到系统浏览器粘贴打开后再添加',
+      ]
+    case 'ios':
+      return ['苹果：点底部分享（方框↑）→「添加到主屏幕」']
+    case 'android':
+      return [
+        '安卓：先点下方「一键添加到桌面」',
+        '若无弹窗：点浏览器右上角 ··· →「添加到主屏幕」或「安装应用」',
+      ]
+    default:
+      return [
+        '点下方「一键添加到桌面」',
+        '若无反应：浏览器菜单 →「添加到主屏幕 / 安装应用」',
+      ]
   }
-  if (/QQ\//i.test(ua) && !/QQBrowser/i.test(ua)) {
-    return [
-      'QQ：点右上角 ··· →「在浏览器打开」',
-      '再用浏览器打开后，点下方「一键添加到桌面」',
-    ]
-  }
-  if (/baidubrowser|baiduboxapp/i.test(ua)) {
-    return [
-      '百度：请用系统浏览器 / Safari 打开本站',
-      '打开后点下方「一键添加到桌面」',
-    ]
-  }
-  if (/iPhone|iPad|iPod/i.test(ua)) {
-    return ['苹果：点底部分享（方框↑）→「添加到主屏幕」']
-  }
-  if (/Android/i.test(ua)) {
-    return [
-      '安卓：先点下方「一键添加到桌面」',
-      '若无弹窗：点浏览器右上角 ··· →「添加到主屏幕」或「安装应用」',
-    ]
-  }
-  return [
-    '点下方「一键添加到桌面」',
-    '若无反应：浏览器菜单 →「添加到主屏幕 / 安装应用」',
-  ]
 }
 
 /** 设置页：一键添加 + 分机型说明 */
 export function AddToHomeButton() {
+  const kind = useMemo(() => detectKind(), [])
+  const tips = useMemo(() => deviceTips(kind), [kind])
+  const needCopy = kind === 'wechat' || kind === 'qq' || kind === 'baidu'
   const deferredRef = useRef<BeforeInstallPromptEvent | null>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(() => isStandalone())
   const [msg, setMsg] = useState<string | null>(null)
-  const tips = useMemo(() => deviceTips(), [])
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (isStandalone()) {
@@ -73,6 +84,17 @@ export function AddToHomeButton() {
     window.addEventListener('beforeinstallprompt', onBip)
     return () => window.removeEventListener('beforeinstallprompt', onBip)
   }, [])
+
+  const copyLink = async () => {
+    const url = publicAppUrl()
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      window.prompt('复制链接，到手机浏览器打开：', url)
+    }
+  }
 
   const onClick = async () => {
     if (done || busy) return
@@ -95,7 +117,11 @@ export function AddToHomeButton() {
     }
 
     if (!event) {
-      setMsg('当前浏览器不支持一键添加，请按上方说明操作')
+      setMsg(
+        needCopy
+          ? '请先复制链接，到手机浏览器打开后再添加'
+          : '当前浏览器不支持一键添加，请按上方说明操作',
+      )
       return
     }
 
@@ -133,14 +159,24 @@ export function AddToHomeButton() {
         ))}
       </ol>
 
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void onClick()}
-        className="mt-3 w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-      >
-        {busy ? '请稍候…' : '一键添加到桌面'}
-      </button>
+      {needCopy ? (
+        <button
+          type="button"
+          onClick={() => void copyLink()}
+          className="mt-3 w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white"
+        >
+          {copied ? '已复制，请到手机浏览器打开' : '复制链接'}
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void onClick()}
+          className="mt-3 w-full rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {busy ? '请稍候…' : '一键添加到桌面'}
+        </button>
+      )}
       {msg && (
         <p className="mt-2 text-center text-[0.75rem] text-muted">{msg}</p>
       )}
