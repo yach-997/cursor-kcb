@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { registerSW } from 'virtual:pwa-register'
 import { installPdfCompat } from './lib/pdfCompat'
 import App from './App'
 import './index.css'
@@ -15,21 +16,8 @@ try {
   /* ignore */
 }
 
-// 每次启动都注销 SW，避免再次被旧缓存锁死（暂时关闭 PWA 离线）
-void (async () => {
-  try {
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations()
-      await Promise.all(regs.map((r) => r.unregister()))
-    }
-    if ('caches' in window) {
-      const keys = await caches.keys()
-      await Promise.all(keys.map((k) => caches.delete(k)))
-    }
-  } catch {
-    /* ignore */
-  }
-})()
+// 注册 SW：安卓 Chrome 一键「添加到桌面」依赖它；autoUpdate 减轻旧缓存锁死
+registerSW({ immediate: true })
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -41,10 +41,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      selfDestroying: false,
-      // 暂时不注入 registerSW；由 main.tsx 主动注销，避免再锁死旧缓存
-      injectRegister: null,
       registerType: 'autoUpdate',
+      injectRegister: null,
       includeAssets: [
         'favicon.svg',
         'apple-touch-icon.png',
@@ -82,11 +80,18 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,mjs,bcmap,json}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,mjs,bcmap}'],
+        globIgnores: ['**/version.json', '**/clear.html', '**/update.html'],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
-        navigateFallbackDenylist: [/clear\.html/],
+        navigateFallbackDenylist: [/clear\.html/, /update\.html/, /version\.json/],
+        runtimeCaching: [
+          {
+            urlPattern: /\/version\.json$/i,
+            handler: 'NetworkOnly',
+          },
+        ],
       },
     }),
   ],
