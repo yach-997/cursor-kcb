@@ -50,12 +50,12 @@ function deviceTips(kind: ReturnType<typeof detectKind>): string[] {
     case 'android':
       return [
         '先点「一键添加到桌面」',
-        '若无弹窗：浏览器 ··· →「添加到主屏幕」或「安装应用」',
+        '若无弹窗：点浏览器菜单（底部或右上角）→「添加到主屏幕」或「安装应用」',
       ]
     default:
       return [
         '点「一键添加到桌面」',
-        '若无反应：浏览器菜单 →「添加到主屏幕 / 安装应用」',
+        '若无反应：点浏览器菜单 →「添加到主屏幕 / 安装应用」',
       ]
   }
 }
