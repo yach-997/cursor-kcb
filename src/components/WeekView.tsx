@@ -17,6 +17,18 @@ interface Props {
   onCourseClick?: (course: Course) => void
 }
 
+/** 单双周课块辅助纹路（卡片上另有文字标注） */
+const ODD_STRIPE =
+  ', repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255,255,255,0.22) 3px, rgba(255,255,255,0.22) 6px)'
+const EVEN_STRIPE =
+  ', repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,0.14) 3px, rgba(0,0,0,0.14) 6px)'
+
+function parityStripe(parity: Course['weekParity']): string {
+  if (parity === 'odd') return ODD_STRIPE
+  if (parity === 'even') return EVEN_STRIPE
+  return ''
+}
+
 /** 节次 → 网格行号（1=表头；午休占一行） */
 function sectionRow(sec: number): number {
   if (sec <= 4) return 1 + sec
@@ -236,12 +248,7 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
             const rowEnd = sectionRow(endSec) + 1
             const color = courseColor(course.name)
             const clickable = course.source === 'manual' && onCourseClick
-            const stripe =
-              course.weekParity === 'odd'
-                ? ', repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255,255,255,0.22) 3px, rgba(255,255,255,0.22) 6px)'
-                : course.weekParity === 'even'
-                  ? ', repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,0.14) 3px, rgba(0,0,0,0.14) 6px)'
-                  : ''
+            const stripe = parityStripe(course.weekParity)
             const className =
               'z-10 m-[3px] flex flex-col items-center justify-center overflow-hidden rounded-md px-1 py-1 text-center text-white shadow-sm'
             const style = {
@@ -293,10 +300,44 @@ export function WeekView({ courses, suggestedWeek, termStart, onCourseClick }: P
           })}
         </div>
 
-        <p className="mt-2 text-center text-[0.65rem] text-muted">
-          第 {viewWeek} 周
-          {viewingRealToday ? '（含今天）' : ''} · 单周斜纹 / 双周反斜纹
-        </p>
+        <div className="mt-2 space-y-1.5 text-center text-[0.65rem] text-muted">
+          <p>
+            第 {viewWeek} 周
+            {viewingRealToday ? '（含今天）' : ''}
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="h-3.5 w-5 rounded-sm"
+                style={{
+                  background: `linear-gradient(160deg, #0d6e5af2, #0d6e5acc)${ODD_STRIPE}`,
+                }}
+                aria-hidden
+              />
+              单周课
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="h-3.5 w-5 rounded-sm"
+                style={{
+                  background: `linear-gradient(160deg, #0d6e5af2, #0d6e5acc)${EVEN_STRIPE}`,
+                }}
+                aria-hidden
+              />
+              双周课
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="h-3.5 w-5 rounded-sm"
+                style={{
+                  background: 'linear-gradient(160deg, #0d6e5af2, #0d6e5acc)',
+                }}
+                aria-hidden
+              />
+              每周
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   )
