@@ -1,7 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // 本地默认 './'；CI 也可注入 VITE_BASE
@@ -39,7 +38,6 @@ export default defineConfig({
   plugins: [
     emitVersionJson(),
     react(),
-    tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: null,
