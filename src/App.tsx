@@ -1,4 +1,5 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BaiduAnalytics } from './components/BaiduAnalytics'
 import { BottomNav } from './components/BottomNav'
 import { UpdateBanner } from './components/UpdateBanner'
 import { useTimetable } from './hooks/useTimetable'
@@ -13,6 +14,7 @@ export default function App() {
 
   return (
     <HashRouter>
+      <BaiduAnalytics />
       <div className="app-shell">
         <UpdateBanner />
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
