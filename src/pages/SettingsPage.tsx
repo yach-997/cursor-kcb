@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AddToHomeButton } from '../components/AddToHomeButton'
 import { TermMetaForm } from '../components/TermMetaForm'
+import { VisitCountLine } from '../components/VisitCountLine'
 import { APP_VERSION } from '../appVersion'
 import { clearImportDraft } from '../lib/importDraft'
 import { hardRefreshApp } from '../lib/hardRefresh'
@@ -253,6 +254,7 @@ export function SettingsPage({ data, onImport, onClear }: Props) {
           </a>
         </p>
         <p className="mt-1">版本 {APP_VERSION}</p>
+        <VisitCountLine className="mt-1" />
       </section>
     </div>
   )
