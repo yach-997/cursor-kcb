@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AddCourseSheet } from '../components/AddCourseSheet'
 import { TermMetaForm } from '../components/TermMetaForm'
 import { TodayView } from '../components/TodayView'
-import { VisitCountBanner } from '../components/VisitCountLine'
+import { VisitCountHint } from '../components/VisitCountLine'
 import { WeekView } from '../components/WeekView'
 import {
   currentTeachingWeek,
@@ -135,7 +135,11 @@ export function HomePage({ data, onUpdate }: Props) {
           <h1 className="font-display text-lg font-bold tracking-tight text-ink">
             {studentName ? `${studentName}的课表` : '川轻化课表助手'}
           </h1>
-          <p className="truncate text-[0.7rem] text-muted">{subtitle}</p>
+          <div className="mt-0.5 flex min-w-0 items-center gap-2">
+            <p className="min-w-0 truncate text-[0.7rem] text-muted">{subtitle}</p>
+            <span className="h-2.5 w-px shrink-0 bg-line" aria-hidden />
+            <VisitCountHint />
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {canAdd && (
@@ -156,8 +160,6 @@ export function HomePage({ data, onUpdate }: Props) {
           </button>
         </div>
       </header>
-
-      <VisitCountBanner />
 
       {needTermMeta && data && (
         <div className="mx-3 mt-2">
