@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AddCourseSheet } from '../components/AddCourseSheet'
 import { TermMetaForm } from '../components/TermMetaForm'
 import { TodayView } from '../components/TodayView'
+import { VisitCountBanner } from '../components/VisitCountLine'
 import { WeekView } from '../components/WeekView'
 import {
   currentTeachingWeek,
@@ -155,6 +156,8 @@ export function HomePage({ data, onUpdate }: Props) {
           </button>
         </div>
       </header>
+
+      <VisitCountBanner />
 
       {needTermMeta && data && (
         <div className="mx-3 mt-2">

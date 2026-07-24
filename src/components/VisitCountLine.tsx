@@ -15,8 +15,7 @@ function readBusuanziPv(): number {
   return Number.isFinite(n) ? n : 0
 }
 
-/** 累计访问：1450 + 每日不规律虚增 + 不蒜子真实站内 PV */
-export function VisitCountLine({ className = '' }: { className?: string }) {
+function useVisitTotal(): number {
   const fake = useMemo(() => fakeVisitGrowth(), [])
   const [real, setReal] = useState(0)
 
@@ -57,11 +56,28 @@ export function VisitCountLine({ className = '' }: { className?: string }) {
     }
   }, [])
 
-  const total = VISIT_BASE + fake + real
+  return VISIT_BASE + fake + real
+}
 
+/** 设置页等：一行文字 */
+export function VisitCountLine({ className = '' }: { className?: string }) {
+  const total = useVisitTotal()
   return (
-    <p className={className}>
-      累计访问 {formatVisitCount(total)}
-    </p>
+    <p className={className}>累计访问 {formatVisitCount(total)}</p>
+  )
+}
+
+/** 首页顶部：更显眼的条 */
+export function VisitCountBanner() {
+  const total = useVisitTotal()
+  return (
+    <div className="mx-3 mt-2 flex items-center justify-between gap-2 rounded-xl border border-brand/25 bg-brand-soft px-3 py-2">
+      <span className="text-[0.75rem] font-medium text-brand-dark">
+        已有同学在用
+      </span>
+      <span className="text-sm font-bold tabular-nums text-brand-dark">
+        累计访问 {formatVisitCount(total)}
+      </span>
+    </div>
   )
 }
