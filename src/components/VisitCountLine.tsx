@@ -7,6 +7,7 @@ import {
 
 const BUSUANZI_SRC =
   'https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js'
+const CACHE_KEY = 'susuc-visit-total'
 
 function readBusuanziPv(): number {
   const el = document.getElementById('busuanzi_value_site_pv')
@@ -15,20 +16,64 @@ function readBusuanziPv(): number {
   return Number.isFinite(n) ? n : 0
 }
 
-function useVisitTotal(): number {
+function readCachedTotal(): number | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const n = Number(raw)
+    return Number.isFinite(n) && n > 0 ? n : null
+  } catch {
+    return null
+  }
+}
+
+function writeCachedTotal(n: number) {
+  try {
+    localStorage.setItem(CACHE_KEY, String(n))
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * 避免刷新时先闪「基础+虚增」、再跳到含真实 PV 的数字。
+ * 优先展示上次缓存；等不蒜子就绪后再更新。
+ */
+function useVisitTotal(): number | null {
   const fake = useMemo(() => fakeVisitGrowth(), [])
-  const [real, setReal] = useState(0)
+  const [display, setDisplay] = useState<number | null>(() => readCachedTotal())
 
   useEffect(() => {
     let alive = true
     let tries = 0
+    let settled = false
+
+    const apply = (real: number) => {
+      if (!alive) return
+      const next = VISIT_BASE + fake + real
+      setDisplay(next)
+      writeCachedTotal(next)
+      settled = true
+    }
 
     const pull = () => {
-      if (!alive) return
+      if (!alive || settled) return
       const n = readBusuanziPv()
-      if (n > 0) setReal(n)
+      if (n > 0) {
+        apply(n)
+        return
+      }
       tries += 1
-      if (n === 0 && tries < 40) window.setTimeout(pull, 500)
+      // 超时仍无真实数：用缓存；无缓存才用基础+虚增，并写入缓存避免下次再闪
+      if (tries >= 40) {
+        const cached = readCachedTotal()
+        if (cached != null) {
+          setDisplay(cached)
+        } else {
+          apply(0)
+        }
+        settled = true
+      }
     }
 
     if (!document.getElementById('busuanzi_value_site_pv')) {
@@ -49,14 +94,17 @@ function useVisitTotal(): number {
       pull()
     }
 
-    const timer = window.setInterval(pull, 2000)
+    const timer = window.setInterval(() => {
+      if (!settled) pull()
+    }, 500)
+
     return () => {
       alive = false
       window.clearInterval(timer)
     }
-  }, [])
+  }, [fake])
 
-  return VISIT_BASE + fake + real
+  return display
 }
 
 /** 底部导航上方：有无课表都常驻可见 */
@@ -64,7 +112,7 @@ export function VisitCountHint() {
   const total = useVisitTotal()
   return (
     <p className="text-center text-[0.65rem] tabular-nums tracking-wide text-muted">
-      累计访问量 {formatVisitCount(total)}
+      累计访问量 {total == null ? '…' : formatVisitCount(total)}
     </p>
   )
 }
