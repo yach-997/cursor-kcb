@@ -64,7 +64,7 @@ export function VisitCountHint() {
   const total = useVisitTotal()
   return (
     <span className="block text-[0.7rem] tabular-nums text-muted">
-      累计 {formatVisitCount(total)}
+      累计访问量 {formatVisitCount(total)}
     </span>
   )
 }
