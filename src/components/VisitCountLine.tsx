@@ -59,12 +59,12 @@ function useVisitTotal(): number {
   return VISIT_BASE + fake + real
 }
 
-/** 首页标题旁：轻量一行，不另起色块 */
+/** 底部导航上方：有无课表都常驻可见 */
 export function VisitCountHint() {
   const total = useVisitTotal()
   return (
-    <span className="block text-[0.7rem] tabular-nums text-muted">
+    <p className="text-center text-[0.65rem] tabular-nums tracking-wide text-muted">
       累计访问量 {formatVisitCount(total)}
-    </span>
+    </p>
   )
 }

@@ -1,5 +1,4 @@
 import type { Course } from '../types'
-import { VisitCountHint } from './VisitCountLine'
 import {
   SECTION_TIME_RANGES,
   WEEKDAY_LABELS,
@@ -46,8 +45,8 @@ export function TodayView({
 
   return (
     <div className="px-3 pb-2 animate-fade-in">
-      <div className="mb-2 flex items-start justify-between gap-3 px-0.5">
-        <div className="min-w-0">
+      <div className="mb-2 flex items-end justify-between px-0.5">
+        <div>
           <h2 className="text-base font-bold text-ink">今日课程</h2>
           <p className="text-[0.7rem] text-muted">
             {dateText}
@@ -58,10 +57,7 @@ export function TodayView({
                 : ''}
           </p>
         </div>
-        <div className="shrink-0 pt-0.5 text-right">
-          <VisitCountHint />
-          <p className="mt-0.5 text-[0.7rem] text-muted">{list.length} 节</p>
-        </div>
+        <span className="text-[0.7rem] text-muted">{list.length} 节</span>
       </div>
 
       {beforeTerm ? (
