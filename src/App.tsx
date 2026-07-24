@@ -1,6 +1,7 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { BaiduAnalytics } from './components/BaiduAnalytics'
 import { BottomNav } from './components/BottomNav'
+import { LuciusSupport } from './components/LuciusSupport'
 import { UpdateBanner } from './components/UpdateBanner'
 import { useTimetable } from './hooks/useTimetable'
 import { clearTimetable } from './lib/storage'
@@ -40,6 +41,7 @@ export default function App() {
         </main>
         <BottomNav />
       </div>
+      <LuciusSupport />
     </HashRouter>
   )
 }
